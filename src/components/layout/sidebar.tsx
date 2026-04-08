@@ -5,19 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAppStore } from "@/providers/app-provider";
 import { signOut } from "@/lib/auth-client";
-import {
-  LogOut, LayoutDashboard, Users, FolderKanban, Contact, Building2, Workflow, Menu, X,
-} from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/projetos", label: "Projetos", icon: FolderKanban },
-  { href: "/membros", label: "Colaboradores", icon: Users },
-  { href: "/stakeholders", label: "Stakeholders", icon: Contact },
-  { href: "/empresa", label: "Empresa", icon: Building2 },
-  { href: "/automacoes", label: "Automações", icon: Workflow },
-] as const;
+import { navigation } from "@/lib/navigation";
 
 export const Sidebar: React.FC = () => {
   const { currentUser } = useAppStore();
@@ -54,27 +44,68 @@ export const Sidebar: React.FC = () => {
           </h1>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={cn(
-                  "flex items-center w-full gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-[var(--color-v4-red)] text-white shadow-md shadow-[var(--color-v4-red-muted)]"
-                    : "text-[var(--color-v4-text-muted)] hover:bg-[var(--color-v4-card-hover)] hover:text-white",
-                )}
-              >
-                <Icon size={18} />
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="flex-1 p-4 space-y-5 overflow-y-auto">
+          {navigation.map((section) => (
+            <div key={section.title}>
+              <p className="px-4 mb-2 text-[10px] font-mono uppercase tracking-widest text-[var(--color-v4-text-muted)]">
+                {section.title}
+              </p>
+              <div className="space-y-1">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+
+                  if (item.disabled) {
+                    return (
+                      <div
+                        key={item.href}
+                        className="flex items-center w-full gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-[var(--color-v4-text-muted)] opacity-40 cursor-not-allowed select-none"
+                      >
+                        <Icon size={18} />
+                        <span className="flex-1 truncate">{item.name}</span>
+                        {item.badge && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-zinc-800 text-zinc-500 border border-zinc-700/50">
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={cn(
+                        "flex items-center w-full gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors",
+                        isActive
+                          ? "bg-[var(--color-v4-red)] text-white shadow-md shadow-[var(--color-v4-red-muted)]"
+                          : "text-[var(--color-v4-text-muted)] hover:bg-[var(--color-v4-card-hover)] hover:text-white",
+                      )}
+                    >
+                      <Icon size={18} />
+                      <span className="flex-1 truncate">{item.name}</span>
+                      {item.badge && (
+                        <span
+                          className={cn(
+                            "text-[9px] font-mono px-1.5 py-0.5 rounded-full border",
+                            item.badge === "Novo"
+                              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
+                              : item.badge === "Beta"
+                                ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/20"
+                                : "bg-zinc-800 text-zinc-400 border-zinc-700/50",
+                          )}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
         <div className="p-4 border-t border-[var(--color-v4-border)]">

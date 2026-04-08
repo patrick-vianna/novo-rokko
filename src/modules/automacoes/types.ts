@@ -1,0 +1,1 @@
+// Tipos do modulo Automacoes
