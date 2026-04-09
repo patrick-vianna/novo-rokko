@@ -9,8 +9,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Verificar se tem cookie de sessão do Better Auth
-  const sessionCookie = request.cookies.get("better-auth.session_token");
+  // Verificar se tem cookie de sessão do Better Auth (dev: sem prefixo, prod HTTPS: __Secure-)
+  const sessionCookie =
+    request.cookies.get("better-auth.session_token") ||
+    request.cookies.get("__Secure-better-auth.session_token");
+
+  // API routes retornam 401 JSON em vez de redirect HTML
+  if (pathname.startsWith("/api/")) {
+    if (!sessionCookie) {
+      return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
+    }
+    return NextResponse.next();
+  }
 
   if (!sessionCookie) {
     return NextResponse.redirect(new URL("/login", request.url));
