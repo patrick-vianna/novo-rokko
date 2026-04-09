@@ -1,42 +1,33 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useAppStore } from "@/providers/app-provider";
-import { ArrowRight, UserPlus, Settings, Clock } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Clock } from "lucide-react";
+import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import { getLogEventConfig, formatLogDescription, LOG_CATEGORIES } from "@/lib/log-events";
 
-const STAGE_LABELS: Record<string, string> = {
-  aguardando_comercial: "Aguardando Comercial",
-  atribuir_coordenador: "Atribuir Coordenador",
-  atribuir_equipe: "Atribuir Equipe",
-  criar_workspace: "Criar Workspace",
-  boas_vindas: "Boas-vindas",
-  kickoff: "Kickoff",
-  planejamento: "Planejamento",
-  ongoing: "Ongoing",
-};
-
-function getActionInfo(action: string, details: any) {
-  switch (action) {
-    case "stage_changed":
-      return {
-        icon: <ArrowRight size={14} />,
-        color: "text-blue-400 bg-blue-500/10",
-        label: `Moveu de ${STAGE_LABELS[details?.from] || details?.from || "?"} para ${STAGE_LABELS[details?.to] || details?.to || "?"}`,
-      };
-    case "member_assigned":
-      return { icon: <UserPlus size={14} />, color: "text-emerald-400 bg-emerald-500/10", label: "Membro atribuido" };
-    case "workspace_created":
-      return { icon: <Settings size={14} />, color: "text-purple-400 bg-purple-500/10", label: "Workspace criado" };
-    default:
-      return { icon: <Clock size={14} />, color: "text-[var(--color-v4-text-muted)] bg-[var(--color-v4-surface)]", label: action.replace(/_/g, " ") };
-  }
+function formatTimestamp(dateStr: string): string {
+  const date = new Date(dateStr);
+  if (isToday(date)) return formatDistanceToNow(date, { addSuffix: true, locale: ptBR });
+  if (isYesterday(date)) return `ontem ${format(date, "HH:mm")}`;
+  return format(date, "dd/MM/yyyy HH:mm");
 }
 
 export function TabHistorico({ projectId }: { projectId: string }) {
   const { logs, members } = useAppStore();
+  const [filter, setFilter] = useState("todos");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
   const projectLogs = logs.filter((l) => l.projectId === projectId);
+
+  const filteredLogs = filter === "todos"
+    ? projectLogs
+    : projectLogs.filter((l) => {
+        const cfg = getLogEventConfig(l.action);
+        return cfg.category === filter;
+      });
 
   if (projectLogs.length === 0) {
     return (
@@ -48,37 +39,77 @@ export function TabHistorico({ projectId }: { projectId: string }) {
   }
 
   return (
-    <div className="bg-[var(--color-v4-card)] border border-[var(--color-v4-border)] rounded-xl p-5">
-      <h3 className="text-sm font-semibold text-[var(--color-v4-text-muted)] uppercase tracking-wider mb-4">Timeline de Atividades</h3>
-      <div className="space-y-0">
-        {projectLogs.map((log, idx) => {
-          const info = getActionInfo(log.action, log.details);
-          const performer = log.performedBy ? members.find((m) => m.id === log.performedBy) : null;
-          const isLast = idx === projectLogs.length - 1;
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="flex gap-1.5">
+        {LOG_CATEGORIES.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setFilter(cat.id)}
+            className={cn(
+              "px-3 py-1.5 rounded-md text-xs font-medium border transition-colors",
+              filter === cat.id
+                ? "bg-[var(--color-v4-surface)] text-white border-[var(--color-v4-text-muted)]"
+                : "text-[var(--color-v4-text-muted)] border-[var(--color-v4-border)] hover:text-white",
+            )}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
 
-          return (
-            <div key={log.id} className="flex gap-3">
-              {/* Timeline line */}
-              <div className="flex flex-col items-center">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${info.color}`}>
-                  {info.icon}
-                </div>
-                {!isLast && <div className="w-px flex-1 bg-[var(--color-v4-border)] my-1" />}
-              </div>
+      {/* Timeline */}
+      <div className="bg-[var(--color-v4-card)] border border-[var(--color-v4-border)] rounded-xl p-5">
+        {filteredLogs.length === 0 ? (
+          <p className="text-sm text-[var(--color-v4-text-disabled)] text-center py-4">Nenhum evento nesta categoria</p>
+        ) : (
+          <div className="space-y-0">
+            {filteredLogs.map((log, idx) => {
+              const cfg = getLogEventConfig(log.action);
+              const Icon = cfg.icon;
+              const performer = log.performedBy ? members.find((m) => m.id === log.performedBy) : null;
+              const isLast = idx === filteredLogs.length - 1;
+              const description = formatLogDescription(log.action, log.details);
+              const isExpanded = expandedId === log.id;
+              const isLong = description.length > 120;
 
-              {/* Content */}
-              <div className="flex-1 pb-4 min-w-0">
-                <p className="text-sm text-white">{info.label}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  {performer && <span className="text-xs text-[var(--color-v4-text-muted)]">{performer.name}</span>}
-                  <span className="text-[10px] text-[var(--color-v4-text-disabled)]">
-                    {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true, locale: ptBR })}
-                  </span>
+              return (
+                <div key={log.id} className="flex gap-3">
+                  {/* Timeline connector */}
+                  <div className="flex flex-col items-center">
+                    <div className={cn("w-7 h-7 rounded-full flex items-center justify-center shrink-0", cfg.color)}>
+                      <Icon size={14} />
+                    </div>
+                    {!isLast && <div className="w-px flex-1 bg-[var(--color-v4-border)] my-1" />}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 pb-5 min-w-0">
+                    <p
+                      className={cn(
+                        "text-sm text-white",
+                        !isExpanded && isLong && "line-clamp-2",
+                        isLong && "cursor-pointer hover:text-[var(--color-v4-text-muted)]",
+                      )}
+                      onClick={isLong ? () => setExpandedId(isExpanded ? null : log.id) : undefined}
+                      title={isLong && !isExpanded ? "Clique para expandir" : undefined}
+                    >
+                      {description}
+                    </p>
+                    <div className="flex items-center gap-2 mt-1">
+                      {performer && (
+                        <span className="text-xs text-[var(--color-v4-text-muted)]">{performer.name}</span>
+                      )}
+                      <span className="text-[10px] text-[var(--color-v4-text-disabled)]">
+                        {formatTimestamp(log.createdAt)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-          );
-        })}
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
