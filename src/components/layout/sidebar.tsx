@@ -8,6 +8,7 @@ import { signOut } from "@/lib/auth-client";
 import { LogOut, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navigation } from "@/lib/navigation";
+import { isDev } from "@/lib/roles";
 
 export const Sidebar: React.FC = () => {
   const { currentUser } = useAppStore();
@@ -55,7 +56,7 @@ export const Sidebar: React.FC = () => {
                   const Icon = item.icon;
                   const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
 
-                  if (item.disabled) {
+                  if (item.disabled && !isDev(currentUser?.role || "")) {
                     return (
                       <div
                         key={item.href}
@@ -86,7 +87,12 @@ export const Sidebar: React.FC = () => {
                     >
                       <Icon size={18} />
                       <span className="flex-1 truncate">{item.name}</span>
-                      {item.badge && (
+                      {item.disabled && isDev(currentUser?.role || "") && (
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/20">
+                          Dev
+                        </span>
+                      )}
+                      {item.badge && !item.disabled && (
                         <span
                           className={cn(
                             "text-[9px] font-mono px-1.5 py-0.5 rounded-full border",

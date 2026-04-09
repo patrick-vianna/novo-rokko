@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useAppStore } from "@/providers/app-provider";
 import { Building2, Save } from "lucide-react";
+import { ADMIN_ROLES } from "@/lib/roles";
 
 export const CompanyView: React.FC = () => {
   const { company, updateCompany, currentUser } = useAppStore();
@@ -13,7 +14,7 @@ export const CompanyView: React.FC = () => {
     setIsEditing(false);
   };
 
-  const isOwner = currentUser?.role === "owner" || currentUser?.role === "admin";
+  const isOwner = ADMIN_ROLES.includes(currentUser?.role || "");
 
   return (
     <div className="flex-1 h-full overflow-y-auto bg-[var(--color-v4-bg)] p-6">

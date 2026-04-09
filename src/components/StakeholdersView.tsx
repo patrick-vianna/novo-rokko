@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useAppStore } from "@/providers/app-provider";
 import { Contact, Search, Plus, Edit2, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
+import { COORD_ROLES } from "@/lib/roles";
 import { Stakeholder, Project } from "@/types";
 
 export const StakeholdersView: React.FC = () => {
@@ -111,10 +112,7 @@ export const StakeholdersView: React.FC = () => {
             </p>
           </div>
 
-          {(currentUser?.role === "owner" ||
-            currentUser?.role === "admin" ||
-            currentUser?.role === "coord_geral" ||
-            currentUser?.role === "coord_equipe") && (
+          {COORD_ROLES.includes(currentUser?.role || "") && (
             <button
               onClick={() => openModal()}
               className="flex items-center gap-2 px-4 py-2 bg-[var(--color-v4-red)] hover:bg-[var(--color-v4-red-hover)] text-white rounded-xl font-medium transition-colors"

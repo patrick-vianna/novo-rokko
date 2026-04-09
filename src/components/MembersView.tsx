@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useAppStore } from "@/providers/app-provider";
 import { Users, Search, Plus, Edit2, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { COORD_ROLES, ADMIN_ROLES } from "@/lib/roles";
 import { Member, Role } from "@/types";
 import toast from "react-hot-toast";
 
@@ -224,12 +225,12 @@ export const MembersView: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {(currentUser?.role === "owner" || currentUser?.role === "admin" || currentUser?.role === "coord_geral" || currentUser?.role === "coord_equipe") && (
+                        {COORD_ROLES.includes(currentUser?.role || "") && (
                           <button onClick={() => openModal(member)} className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-md transition-colors">
                             <Edit2 size={16} />
                           </button>
                         )}
-                        {(currentUser?.role === "owner" || currentUser?.role === "admin") && (
+                        {ADMIN_ROLES.includes(currentUser?.role || "") && (
                           <button onClick={() => handleDeletePrompt(member)} className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-red-900/20 rounded-md transition-colors">
                             <Trash2 size={16} />
                           </button>

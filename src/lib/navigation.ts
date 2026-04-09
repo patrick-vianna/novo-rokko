@@ -1,9 +1,11 @@
 import {
   LayoutDashboard,
+  Route,
   FolderKanban,
   Users,
   Contact,
   Building2,
+  Briefcase,
   Target,
   Palette,
   BarChart3,
@@ -31,6 +33,7 @@ export const navigation: NavSection[] = [
     title: "Principal",
     items: [
       { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+      { name: "Jornada", href: "/jornada", icon: Route },
       { name: "Projetos", href: "/projetos", icon: FolderKanban },
       { name: "Colaboradores", href: "/membros", icon: Users },
       { name: "Stakeholders", href: "/stakeholders", icon: Contact },
@@ -40,6 +43,7 @@ export const navigation: NavSection[] = [
   {
     title: "Modulos",
     items: [
+      { name: "Comercial", href: "/comercial", icon: Briefcase, badge: "Em breve", disabled: true },
       { name: "Trafego Pago", href: "/trafego-pago", icon: Target },
       { name: "Design", href: "/design", icon: Palette, badge: "Em breve", disabled: true },
       { name: "Tracking", href: "/tracking", icon: BarChart3, badge: "Em breve", disabled: true },

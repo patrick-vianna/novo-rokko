@@ -44,6 +44,12 @@ function mapProject(p: any): Project {
     workspaceStatus: p.workspaceStatus ?? p.workspace_status, workspaceCreationStarted: p.workspaceCreationStarted ?? p.workspace_creation_started,
     stage: p.stage, welcomeSent: p.welcomeSent ?? p.welcome_sent,
     stageChangedAt: p.stageChangedAt ?? p.stage_changed_at, createdAt: p.createdAt ?? p.created_at, updatedAt: p.updatedAt ?? p.updated_at,
+    pipeline: p.pipeline ?? p.pipeline ?? "onboarding",
+    productType: p.productType ?? p.product_type ?? "pending",
+    lifecycleStatus: p.lifecycleStatus ?? p.lifecycle_status ?? "active",
+    convertedFromId: p.convertedFromId ?? p.converted_from_id,
+    churnedAt: p.churnedAt ?? p.churned_at,
+    convertedAt: p.convertedAt ?? p.converted_at,
   } as any;
 }
 

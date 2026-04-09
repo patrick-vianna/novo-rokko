@@ -29,7 +29,7 @@ export const member = pgTable("member", {
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow(),
 }, (table) => [
   unique("member_email_key").on(table.email),
-  check("member_role_check", sql`role = ANY (ARRAY['owner'::text, 'admin'::text, 'coord_geral'::text, 'coord_equipe'::text, 'comercial'::text, 'copywriter'::text, 'designer'::text, 'gestor_trafego'::text, 'gestor_projetos'::text])`),
+  check("member_role_check", sql`role = ANY (ARRAY['dev'::text, 'owner'::text, 'admin'::text, 'coord_geral'::text, 'coord_equipe'::text, 'comercial'::text, 'copywriter'::text, 'designer'::text, 'gestor_trafego'::text, 'gestor_projetos'::text])`),
 ]);
 
 // ==============================
@@ -85,6 +85,13 @@ export const project = pgTable("project", {
   linkCallVendas: text("link_call_vendas"),
   linkTranscricao: text("link_transcricao"),
   observacoes: text(),
+  // Pipeline fields
+  productType: text("product_type").default("pending"),
+  pipeline: text().default("onboarding"),
+  lifecycleStatus: text("lifecycle_status").default("active"),
+  convertedFromId: uuid("converted_from_id"),
+  churnedAt: timestamp("churned_at", { withTimezone: true, mode: "string" }),
+  convertedAt: timestamp("converted_at", { withTimezone: true, mode: "string" }),
 }, (table) => [
   foreignKey({ columns: [table.assignedById], foreignColumns: [member.id], name: "project_assigned_by_id_fkey" }).onDelete("set null"),
   foreignKey({ columns: [table.assignedCoordinatorId], foreignColumns: [member.id], name: "project_assigned_coordinator_id_fkey" }).onDelete("set null"),
@@ -184,6 +191,45 @@ export const workflowExecution = pgTable("workflow_execution", {
   error: text(),
 }, (table) => [
   foreignKey({ columns: [table.workflowId], foreignColumns: [workflow.id], name: "workflow_execution_workflow_id_fkey" }).onDelete("cascade"),
+]);
+
+// ==============================
+// Tabela: client_credential
+// ==============================
+export const clientCredential = pgTable("client_credential", {
+  id: uuid().defaultRandom().primaryKey().notNull(),
+  projectId: uuid("project_id").notNull(),
+  serviceName: text("service_name").notNull(),
+  serviceCategory: text("service_category").default("other"),
+  login: text().notNull(),
+  encryptedPassword: text("encrypted_password").notNull(),
+  encryptionIv: text("encryption_iv").notNull(),
+  encryptionTag: text("encryption_tag").notNull(),
+  url: text(),
+  notes: text(),
+  createdBy: uuid("created_by"),
+  updatedBy: uuid("updated_by"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow(),
+}, (table) => [
+  foreignKey({ columns: [table.projectId], foreignColumns: [project.id], name: "client_credential_project_id_fkey" }).onDelete("cascade"),
+  foreignKey({ columns: [table.createdBy], foreignColumns: [member.id], name: "client_credential_created_by_fkey" }),
+  foreignKey({ columns: [table.updatedBy], foreignColumns: [member.id], name: "client_credential_updated_by_fkey" }),
+]);
+
+// ==============================
+// Tabela: credential_access_log
+// ==============================
+export const credentialAccessLog = pgTable("credential_access_log", {
+  id: uuid().defaultRandom().primaryKey().notNull(),
+  credentialId: uuid("credential_id").notNull(),
+  accessedBy: uuid("accessed_by").notNull(),
+  action: text().notNull().default("view"),
+  ipAddress: text("ip_address"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow(),
+}, (table) => [
+  foreignKey({ columns: [table.credentialId], foreignColumns: [clientCredential.id], name: "credential_access_log_credential_id_fkey" }).onDelete("cascade"),
+  foreignKey({ columns: [table.accessedBy], foreignColumns: [member.id], name: "credential_access_log_accessed_by_fkey" }),
 ]);
 
 // ==============================

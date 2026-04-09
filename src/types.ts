@@ -1,4 +1,5 @@
 export type Role =
+  | "dev"
   | "owner"
   | "admin"
   | "coord_geral"
@@ -11,14 +12,27 @@ export type Role =
   | "membro";
 
 export type Stage =
+  // Onboarding
   | "aguardando_comercial"
   | "atribuir_coordenador"
   | "atribuir_equipe"
   | "criar_workspace"
+  // Recorrente
   | "boas_vindas"
   | "kickoff"
   | "planejamento"
-  | "ongoing";
+  | "ongoing"
+  | "churn"
+  // Estruturacao Estrategica
+  | "ee_semana_1"
+  | "ee_semana_2"
+  | "ee_semana_3"
+  | "ee_semana_4"
+  | "ee_semana_5";
+
+export type Pipeline = "onboarding" | "recorrente" | "estruturacao_estrategica";
+export type ProductType = "pending" | "byline" | "estruturacao_estrategica";
+export type LifecycleStatus = "active" | "churned" | "completed" | "converted" | "cancelled";
 
 export interface Member {
   id: string;
@@ -91,6 +105,14 @@ export interface Project {
   stage: Stage;
   welcomeSent: boolean;
   workspaceCreationStarted?: boolean;
+
+  // Pipeline fields
+  pipeline?: Pipeline;
+  productType?: ProductType;
+  lifecycleStatus?: LifecycleStatus;
+  convertedFromId?: string;
+  churnedAt?: string;
+  convertedAt?: string;
 
   createdAt: string;
   updatedAt: string;

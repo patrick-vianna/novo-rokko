@@ -3,7 +3,11 @@
     "allow": [
       "Bash(npx better-auth:*)",
       "Bash(npx @better-auth/cli migrate)",
-      "Bash(npx drizzle-kit:*)"
+      "Bash(npx drizzle-kit:*)",
+      "Bash(openssl rand:*)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\patri\\OneDrive\\Área de Trabalho\\rokko-next\\src\\app\\api\\data\\projects\\[id]"
     ]
   }
 }

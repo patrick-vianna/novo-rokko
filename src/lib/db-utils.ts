@@ -23,13 +23,5 @@ export async function getCurrentMember() {
   return getMemberByEmail(session.user.email);
 }
 
-export function hasRole(userRole: string, allowedRoles: string[]): boolean {
-  return allowedRoles.includes(userRole);
-}
-
-export const ADMIN_ROLES = ["owner", "admin", "coord_geral"];
-export const ALL_ROLES = [
-  "owner", "admin", "coord_geral", "coord_equipe",
-  "comercial", "copywriter", "designer",
-  "gestor_trafego", "gestor_projetos", "membro",
-];
+// Re-export from centralized roles module
+export { hasAccess as hasRole, ADMIN_ROLES, MANAGEMENT_ROLES, ALL_ROLES } from "./roles";
