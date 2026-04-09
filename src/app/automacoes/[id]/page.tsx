@@ -46,7 +46,7 @@ export default function EditWorkflowPage() {
     );
   }
 
-  const flowData = workflow.flow_data || { nodes: [], edges: [] };
+  const flowData = workflow.flowData || workflow.flow_data || { nodes: [], edges: [] };
 
   return (
     <div className="flex-1 flex flex-col h-[calc(100vh-0px)] overflow-hidden">

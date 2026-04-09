@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabaseRealtime } from "@/lib/supabase-realtime";
 import { useSession } from "@/lib/auth-client";
 import {
   Member,
@@ -14,6 +14,72 @@ import {
 } from "@/types";
 import toast from "react-hot-toast";
 import { STAGE_LABELS, type ProjectContext } from "@/lib/workflow-types";
+
+// Helper: map Drizzle row (camelCase from schema) to frontend types
+function mapMember(m: any): Member {
+  return { id: m.id, name: m.name, nickname: m.nickname, email: m.email, phone: m.phone, role: m.role, isActive: m.isActive ?? m.is_active };
+}
+
+function mapProject(p: any): Project {
+  return {
+    id: p.id, name: p.name, clientName: p.clientName ?? p.client_name, clientPhone: p.clientPhone ?? p.client_phone,
+    clientCnpj: p.clientCnpj ?? p.client_cnpj, clientEmail: p.clientEmail ?? p.client_email,
+    kommoLeadId: p.kommoLeadId ?? p.kommo_lead_id, kommoLink: p.kommoLink ?? p.kommo_link, ekyteId: p.ekyteId ?? p.ekyte_id,
+    product: p.products, contractValue: p.contractValue ?? p.contract_value, meetingLinks: p.meetingLinks ?? p.meeting_links,
+    produtosEscopo: p.produtosEscopo ?? p.produtos_escopo, valorEscopo: p.valorEscopo ?? p.valor_escopo,
+    dataInicioEscopo: p.dataInicioEscopo ?? p.data_inicio_escopo, dataPgtoEscopo: p.dataPgtoEscopo ?? p.data_pgto_escopo,
+    produtosRecorrente: p.produtosRecorrente ?? p.produtos_recorrente, valorRecorrente: p.valorRecorrente ?? p.valor_recorrente,
+    dataInicioRecorrente: p.dataInicioRecorrente ?? p.data_inicio_recorrente, dataPgtoRecorrente: p.dataPgtoRecorrente ?? p.data_pgto_recorrente,
+    linkCallVendas: p.linkCallVendas ?? p.link_call_vendas, linkTranscricao: p.linkTranscricao ?? p.link_transcricao,
+    observacoes: p.observacoes, contractUrl: p.contractUrl ?? p.contract_url, contractFilename: p.contractFilename ?? p.contract_filename,
+    firstPaymentDate: p.firstPaymentDate ?? p.first_payment_date, projectStartDate: p.projectStartDate ?? p.project_start_date,
+    assignedCoordinatorId: p.assignedCoordinatorId ?? p.assigned_coordinator_id, assignedById: p.assignedById ?? p.assigned_by_id,
+    soldById: p.soldById ?? p.sold_by_id, soldBy: p.soldBy ?? p.sold_by,
+    gchatSpaceId: p.gchatSpaceId ?? p.gchat_space_id, gchatLink: p.gchatLink ?? p.gchat_link,
+    wppGroupId: p.wppGroupId ?? p.wpp_group_id, wppGroupLink: p.wppGroupLink ?? p.wpp_group_link,
+    gdriveFolderId: p.gdriveFolderId ?? p.gdrive_folder_id, gdriveFolderLink: p.gdriveFolderLink ?? p.gdrive_folder_link,
+    gdriveSharedFolderId: p.gdriveSharedFolderId ?? p.gdrive_shared_folder_id, gdriveSharedFolderLink: p.gdriveSharedFolderLink ?? p.gdrive_shared_folder_link,
+    ekyteLink: p.ekyteLink ?? p.ekyte_link,
+    metaAdsAccountId: p.metaAdsAccountId ?? p.meta_ads_account_id, googleAdsAccountId: p.googleAdsAccountId ?? p.google_ads_account_id,
+    workspaceStatus: p.workspaceStatus ?? p.workspace_status, workspaceCreationStarted: p.workspaceCreationStarted ?? p.workspace_creation_started,
+    stage: p.stage, welcomeSent: p.welcomeSent ?? p.welcome_sent,
+    stageChangedAt: p.stageChangedAt ?? p.stage_changed_at, createdAt: p.createdAt ?? p.created_at, updatedAt: p.updatedAt ?? p.updated_at,
+  } as any;
+}
+
+function mapProjectMember(pm: any): ProjectMember {
+  return { id: pm.id, projectId: pm.projectId ?? pm.project_id, memberId: pm.memberId ?? pm.member_id, roleInProject: pm.roleInProject ?? pm.role_in_project };
+}
+
+function mapStakeholder(s: any): Stakeholder {
+  return { id: s.id, name: s.name, phone: s.phone, email: s.email, role: s.role, projectId: s.projectId ?? s.project_id };
+}
+
+function mapLog(l: any): OnboardingLog {
+  return { id: l.id, projectId: l.projectId ?? l.project_id, action: l.action, details: l.details, performedBy: l.performedBy ?? l.performed_by, createdAt: l.createdAt ?? l.created_at };
+}
+
+// Helper: snake_case payload for API writes
+function toSnake(updates: Record<string, any>): Record<string, any> {
+  const map: Record<string, string> = {
+    clientName: "clientName", clientPhone: "clientPhone", clientCnpj: "clientCnpj", clientEmail: "clientEmail",
+    contractValue: "contractValue", meetingLinks: "meetingLinks", product: "products",
+    produtosEscopo: "produtosEscopo", valorEscopo: "valorEscopo", dataInicioEscopo: "dataInicioEscopo", dataPgtoEscopo: "dataPgtoEscopo",
+    produtosRecorrente: "produtosRecorrente", valorRecorrente: "valorRecorrente", dataInicioRecorrente: "dataInicioRecorrente", dataPgtoRecorrente: "dataPgtoRecorrente",
+    linkCallVendas: "linkCallVendas", linkTranscricao: "linkTranscricao", contractUrl: "contractUrl", contractFilename: "contractFilename",
+    assignedCoordinatorId: "assignedCoordinatorId", assignedById: "assignedById",
+    gchatSpaceId: "gchatSpaceId", gchatLink: "gchatLink", wppGroupId: "wppGroupId", wppGroupLink: "wppGroupLink",
+    gdriveFolderId: "gdriveFolderId", gdriveFolderLink: "gdriveFolderLink", gdriveSharedFolderId: "gdriveSharedFolderId", gdriveSharedFolderLink: "gdriveSharedFolderLink",
+    ekyteId: "ekyteId", ekyteLink: "ekyteLink", welcomeSent: "welcomeSent", workspaceCreationStarted: "workspaceCreationStarted",
+    workspaceStatus: "workspaceStatus", isActive: "isActive",
+  };
+  const payload: Record<string, any> = {};
+  for (const [key, value] of Object.entries(updates)) {
+    if (value === undefined) continue;
+    payload[map[key] || key] = value;
+  }
+  return payload;
+}
 
 interface AppState {
   currentUser: Member | null;
@@ -47,6 +113,15 @@ interface AppState {
 
 const AppContext = createContext<AppState | undefined>(undefined);
 
+async function apiFetch(url: string, options?: RequestInit) {
+  const res = await fetch(url, { ...options, headers: { "Content-Type": "application/json", ...options?.headers } });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: res.statusText }));
+    throw new Error(err.error || res.statusText);
+  }
+  return res.json();
+}
+
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { data: session, isPending: isSessionLoading } = useSession();
 
@@ -59,36 +134,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [company, setCompany] = useState<Company>({ id: "1", name: "Carregando...", cnpj: "", address: "", phone: "" });
   const [logs, setLogs] = useState<OnboardingLog[]>([]);
 
-  // Quando a sessão do Better Auth resolve, buscar o member correspondente
+  // Auth: buscar member logado
   useEffect(() => {
     if (isSessionLoading) return;
-
-    if (!session?.user?.email) {
-      setCurrentUser(null);
-      setIsLoadingAuth(false);
-      return;
-    }
+    if (!session?.user?.email) { setCurrentUser(null); setIsLoadingAuth(false); return; }
 
     const fetchCurrentMember = async () => {
       try {
-        const { data, error } = await supabase
-          .from("member")
-          .select("*")
-          .eq("email", session.user.email)
-          .single();
-
-        if (error) throw error;
-
-        if (data) {
-          setCurrentUser({
-            id: data.id,
-            name: data.name,
-            nickname: data.nickname,
-            email: data.email,
-            phone: data.phone,
-            role: data.role,
-            isActive: data.is_active,
-          });
+        const data = await apiFetch("/api/data/members");
+        const me = (data as any[]).find((m: any) => m.email === session.user.email);
+        if (me) {
+          setCurrentUser(mapMember(me));
           fetchInitialData();
         }
       } catch (error) {
@@ -102,75 +158,46 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     fetchCurrentMember();
   }, [session, isSessionLoading]);
 
-  // Realtime subscriptions — setup separado com cleanup
-  const channelsRef = useRef<ReturnType<typeof supabase.channel>[]>([]);
+  // Realtime subscriptions (Supabase SDK — only for realtime, no data queries)
+  const channelsRef = useRef<ReturnType<typeof supabaseRealtime.channel>[]>([]);
 
   useEffect(() => {
     if (!currentUser) return;
 
-    // Remover channels anteriores (StrictMode / hot reload)
-    channelsRef.current.forEach((ch) => supabase.removeChannel(ch));
+    channelsRef.current.forEach((ch) => supabaseRealtime.removeChannel(ch));
     channelsRef.current = [];
 
-    const projectsChannel = supabase
+    const projectsChannel = supabaseRealtime
       .channel("projects-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "project" }, () => {
-        fetchProjectsOnly();
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "project" }, () => { fetchProjectsOnly(); })
       .subscribe();
 
-    const membersChannel = supabase
+    const membersChannel = supabaseRealtime
       .channel("members-changes")
-      .on("postgres_changes", { event: "*", schema: "public", table: "member" }, () => {
-        fetchMembersOnly();
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "member" }, () => { fetchMembersOnly(); })
       .subscribe();
 
     channelsRef.current = [projectsChannel, membersChannel];
 
     return () => {
-      channelsRef.current.forEach((ch) => supabase.removeChannel(ch));
+      channelsRef.current.forEach((ch) => supabaseRealtime.removeChannel(ch));
       channelsRef.current = [];
     };
   }, [currentUser]);
 
+  // ─── Data fetching via API routes (Drizzle on the server) ───
+
   const fetchProjectsOnly = async () => {
     try {
-      const { data: projectsData } = await supabase.from("project").select("*, sold_by:sold_by_id(id, name, nickname)").order("name");
-      if (projectsData) {
-        setProjects(projectsData.map(p => ({
-          id: p.id, name: p.name, clientName: p.client_name, clientPhone: p.client_phone,
-          clientCnpj: p.client_cnpj, clientEmail: p.client_email,
-          kommoLeadId: p.kommo_lead_id, kommoLink: p.kommo_link, ekyteId: p.ekyte_id,
-          product: p.products, contractValue: p.contract_value, meetingLinks: p.meeting_links,
-          produtosEscopo: p.produtos_escopo, valorEscopo: p.valor_escopo,
-          dataInicioEscopo: p.data_inicio_escopo, dataPgtoEscopo: p.data_pgto_escopo,
-          produtosRecorrente: p.produtos_recorrente, valorRecorrente: p.valor_recorrente,
-          dataInicioRecorrente: p.data_inicio_recorrente, dataPgtoRecorrente: p.data_pgto_recorrente,
-          linkCallVendas: p.link_call_vendas, linkTranscricao: p.link_transcricao,
-          observacoes: p.observacoes, contractUrl: p.contract_url, contractFilename: p.contract_filename,
-          firstPaymentDate: p.first_payment_date, projectStartDate: p.project_start_date,
-          assignedCoordinatorId: p.assigned_coordinator_id, assignedById: p.assigned_by_id,
-          soldById: p.sold_by_id, soldBy: p.sold_by,
-          gchatSpaceId: p.gchat_space_id, gchatLink: p.gchat_link, wppGroupId: p.wpp_group_id, wppGroupLink: p.wpp_group_link, gdriveFolderId: p.gdrive_folder_id,
-          gdriveFolderLink: p.gdrive_folder_link, ekyteLink: p.ekyte_link, gdriveSharedFolderId: p.gdrive_shared_folder_id, gdriveSharedFolderLink: p.gdrive_shared_folder_link,
-          metaAdsAccountId: p.meta_ads_account_id, googleAdsAccountId: p.google_ads_account_id,
-          workspaceStatus: p.workspace_status, workspaceCreationStarted: p.workspace_creation_started, stage: p.stage, welcomeSent: p.welcome_sent,
-          stageChangedAt: p.stage_changed_at, createdAt: p.created_at, updatedAt: p.updated_at
-        } as any)));
-      }
+      const data = await apiFetch("/api/data/projects");
+      setProjects((data as any[]).map(mapProject));
     } catch (e) { console.error(e); }
   };
 
   const fetchMembersOnly = async () => {
     try {
-      const { data: membersData } = await supabase.from("member").select("*").order("name");
-      if (membersData) {
-        setMembers(membersData.map(m => ({
-          id: m.id, name: m.name, nickname: m.nickname, email: m.email,
-          phone: m.phone, role: m.role, isActive: m.is_active
-        })));
-      }
+      const data = await apiFetch("/api/data/members");
+      setMembers((data as any[]).map(mapMember));
     } catch (e) { console.error(e); }
   };
 
@@ -178,38 +205,25 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     try {
       await fetchMembersOnly();
 
-      const { data: companyData } = await supabase.from("company").select("*").limit(1).single();
-      if (companyData) {
-        setCompany({ id: companyData.id, name: companyData.name, cnpj: companyData.cnpj, address: companyData.address, phone: companyData.phone });
-      }
+      const companyData = await apiFetch("/api/data/company").catch(() => null);
+      if (companyData) setCompany({ id: companyData.id, name: companyData.name, cnpj: companyData.cnpj, address: companyData.address, phone: companyData.phone });
 
       await fetchProjectsOnly();
 
-      const { data: pmData } = await supabase.from("project_member").select("*");
-      if (pmData) {
-        setProjectMembers(pmData.map(pm => ({
-          id: pm.id, projectId: pm.project_id, memberId: pm.member_id, roleInProject: pm.role_in_project
-        } as any)));
-      }
+      const pmData = await apiFetch("/api/data/project-members");
+      setProjectMembers((pmData as any[]).map(mapProjectMember));
 
-      const { data: shData } = await supabase.from("stakeholder").select("*");
-      if (shData) {
-        setStakeholders(shData.map(s => ({
-          id: s.id, name: s.name, phone: s.phone, email: s.email, role: s.role, projectId: s.project_id
-        })));
-      }
+      const shData = await apiFetch("/api/data/stakeholders");
+      setStakeholders((shData as any[]).map(mapStakeholder));
 
-      const { data: logsData } = await supabase.from("onboarding_log").select("*").order("created_at", { ascending: false });
-      if (logsData) {
-        setLogs(logsData.map(l => ({
-          id: l.id, projectId: l.project_id, action: l.action, details: l.details,
-          performedBy: l.performed_by, createdAt: l.created_at
-        })));
-      }
+      const logsData = await apiFetch("/api/data/logs");
+      setLogs((logsData as any[]).map(mapLog));
     } catch (err) {
       console.error("Erro ao buscar dados iniciais:", err);
     }
   };
+
+  // ─── Mutations via API routes ───
 
   const getProjectName = (clientName: string, produtosEscopo?: string[], produtosRecorrente?: string[]) => {
     const allProducts = [...(produtosEscopo || []), ...(produtosRecorrente || [])];
@@ -223,11 +237,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setProjects((prev) =>
       prev.map((p) => {
         if (p.id === id) {
-          const updated = {
-            ...p, ...updates,
-            workspaceStatus: updates.workspaceStatus ? { ...p.workspaceStatus, ...updates.workspaceStatus } : p.workspaceStatus,
-            updatedAt: new Date().toISOString()
-          };
+          const updated = { ...p, ...updates, workspaceStatus: updates.workspaceStatus ? { ...p.workspaceStatus, ...updates.workspaceStatus } : p.workspaceStatus, updatedAt: new Date().toISOString() };
           if (updates.clientName !== undefined || updates.produtosEscopo !== undefined || updates.produtosRecorrente !== undefined) {
             updated.name = getProjectName(updated.clientName || p.clientName, updated.produtosEscopo || p.produtosEscopo, updated.produtosRecorrente || p.produtosRecorrente);
           }
@@ -238,51 +248,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
 
     try {
-      const payload: any = {};
-      if (updates.clientName !== undefined) payload.client_name = updates.clientName;
-      if (updates.clientPhone !== undefined) payload.client_phone = updates.clientPhone;
-      if (updates.clientCnpj !== undefined) payload.client_cnpj = updates.clientCnpj;
-      if (updates.clientEmail !== undefined) payload.client_email = updates.clientEmail;
-      if (updates.product !== undefined) payload.products = updates.product;
-      if (updates.contractValue !== undefined) payload.contract_value = updates.contractValue;
-      if (updates.produtosEscopo !== undefined) payload.produtos_escopo = updates.produtosEscopo;
-      if (updates.valorEscopo !== undefined) payload.valor_escopo = updates.valorEscopo;
-      if (updates.dataInicioEscopo !== undefined) payload.data_inicio_escopo = updates.dataInicioEscopo;
-      if (updates.dataPgtoEscopo !== undefined) payload.data_pgto_escopo = updates.dataPgtoEscopo;
-      if (updates.produtosRecorrente !== undefined) payload.produtos_recorrente = updates.produtosRecorrente;
-      if (updates.valorRecorrente !== undefined) payload.valor_recorrente = updates.valorRecorrente;
-      if (updates.dataInicioRecorrente !== undefined) payload.data_inicio_recorrente = updates.dataInicioRecorrente;
-      if (updates.dataPgtoRecorrente !== undefined) payload.data_pgto_recorrente = updates.dataPgtoRecorrente;
-      if (updates.linkCallVendas !== undefined) payload.link_call_vendas = updates.linkCallVendas;
-      if (updates.linkTranscricao !== undefined) payload.link_transcricao = updates.linkTranscricao;
-      if (updates.observacoes !== undefined) payload.observacoes = updates.observacoes;
-      if (updates.contractUrl !== undefined) payload.contract_url = updates.contractUrl;
-      if (updates.contractFilename !== undefined) payload.contract_filename = updates.contractFilename;
-      if (updates.meetingLinks !== undefined) payload.meeting_links = updates.meetingLinks;
-      if (updates.workspaceStatus !== undefined) {
-        const targetProject = projects.find(p => p.id === id);
-        if (targetProject) {
-          payload.workspace_status = { ...targetProject.workspaceStatus, ...updates.workspaceStatus };
-        }
+      const payload = toSnake(updates);
+      if (updates.workspaceStatus) {
+        const target = projects.find(p => p.id === id);
+        if (target) payload.workspaceStatus = { ...target.workspaceStatus, ...updates.workspaceStatus };
       }
-      if (updates.assignedCoordinatorId !== undefined) payload.assigned_coordinator_id = updates.assignedCoordinatorId;
-      if (updates.assignedById !== undefined) payload.assigned_by_id = updates.assignedById;
-      if (updates.gchatSpaceId !== undefined) payload.gchat_space_id = updates.gchatSpaceId;
-      if (updates.gchatLink !== undefined) payload.gchat_link = updates.gchatLink;
-      if (updates.wppGroupId !== undefined) payload.wpp_group_id = updates.wppGroupId;
-      if (updates.wppGroupLink !== undefined) payload.wpp_group_link = updates.wppGroupLink;
-      if (updates.gdriveFolderId !== undefined) payload.gdrive_folder_id = updates.gdriveFolderId;
-      if (updates.gdriveFolderLink !== undefined) payload.gdrive_folder_link = updates.gdriveFolderLink;
-      if (updates.gdriveSharedFolderId !== undefined) payload.gdrive_shared_folder_id = updates.gdriveSharedFolderId;
-      if (updates.gdriveSharedFolderLink !== undefined) payload.gdrive_shared_folder_link = updates.gdriveSharedFolderLink;
-      if (updates.ekyteId !== undefined) payload.ekyte_id = updates.ekyteId;
-      if (updates.ekyteLink !== undefined) payload.ekyte_link = updates.ekyteLink;
-      if (updates.welcomeSent !== undefined) payload.welcome_sent = updates.welcomeSent;
-      if (updates.workspaceCreationStarted !== undefined) payload.workspace_creation_started = updates.workspaceCreationStarted;
-
       if (Object.keys(payload).length > 0) {
-        const { error } = await supabase.from("project").update(payload).eq("id", id);
-        if (error) throw error;
+        await apiFetch(`/api/data/projects/${id}`, { method: "PUT", body: JSON.stringify(payload) });
       }
     } catch (err: any) {
       toast.error(`Erro ao atualizar projeto: ${err.message}`);
@@ -291,199 +263,124 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const moveProject = async (id: string, newStage: Stage) => {
-    const project = projects.find(p => p.id === id);
-    const prevStage = project?.stage;
+    const proj = projects.find(p => p.id === id);
+    const prevStage = proj?.stage;
     const prevProjects = [...projects];
     setProjects((prev) => prev.map((p) => p.id === id ? { ...p, stage: newStage, updatedAt: new Date().toISOString() } : p));
 
     try {
-      const { error } = await supabase.from("project").update({ stage: newStage }).eq("id", id);
-      if (error) throw error;
+      await apiFetch(`/api/data/projects/${id}/stage`, { method: "PUT", body: JSON.stringify({ stage: newStage }) });
       addLog({ projectId: id, action: "stage_changed", details: { from: prevStage, to: newStage }, performedBy: currentUser?.id } as any);
 
-      // Disparar workflows internos de mudança de estágio (em paralelo com n8n)
-      if (project && prevStage) {
-        dispatchStageChangeWorkflows(project, prevStage, newStage);
-      }
+      if (proj && prevStage) dispatchStageChangeWorkflows(proj, prevStage, newStage);
     } catch (err: any) {
       toast.error(`Erro ao mudar etapa: ${err.message}`);
       setProjects(prevProjects);
     }
   };
 
-  const dispatchStageChangeWorkflows = async (
-    project: Project,
-    fromStage: Stage,
-    toStage: Stage,
-  ) => {
+  const dispatchStageChangeWorkflows = async (proj: Project, fromStage: Stage, toStage: Stage) => {
     try {
-      // Buscar todos workflows ativos
-      const { data: workflows, error } = await supabase
-        .from("workflow")
-        .select("*")
-        .eq("active", true);
-
-      if (error || !workflows) return;
-
-      // Filtrar workflows que têm um nó stage_change que combina com a transição
-      const matchingWorkflows = workflows.filter((w: any) => {
-        const flowData = w.flow_data;
+      const workflows = await apiFetch("/api/workflows");
+      const activeWorkflows = (workflows as any[]).filter((w: any) => w.active);
+      const matching = activeWorkflows.filter((w: any) => {
+        const flowData = w.flowData ?? w.flow_data;
         if (!flowData?.nodes) return false;
         return flowData.nodes.some((node: any) => {
           if (node.type !== "stage_change") return false;
           const cfg = node.data?.config;
           if (!cfg) return false;
-          const fromMatch = cfg.fromStage === "*" || cfg.fromStage === fromStage;
-          const toMatch = cfg.toStage === "*" || cfg.toStage === toStage;
-          return fromMatch && toMatch;
+          return (cfg.fromStage === "*" || cfg.fromStage === fromStage) && (cfg.toStage === "*" || cfg.toStage === toStage);
         });
       });
 
-      if (matchingWorkflows.length === 0) return;
+      if (matching.length === 0) return;
 
-      // Montar contexto do projeto
-      const coordinator = project.assignedCoordinatorId
-        ? members.find(m => m.id === project.assignedCoordinatorId)
-        : undefined;
-
+      const coordinator = proj.assignedCoordinatorId ? members.find(m => m.id === proj.assignedCoordinatorId) : undefined;
       const context: ProjectContext = {
-        "projeto.id": project.id,
-        "projeto.nome": project.name,
-        "projeto.empresa": project.clientName,
-        "projeto.email": project.clientEmail || "",
-        "projeto.telefone": project.clientPhone || "",
-        "projeto.estagioAnterior": STAGE_LABELS[fromStage] || fromStage,
-        "projeto.estagioNovo": STAGE_LABELS[toStage] || toStage,
-        "projeto.coordenador": coordinator?.name || "",
-        "projeto.coordenadorId": project.assignedCoordinatorId || "",
+        "projeto.id": proj.id, "projeto.nome": proj.name, "projeto.empresa": proj.clientName,
+        "projeto.email": proj.clientEmail || "", "projeto.telefone": proj.clientPhone || "",
+        "projeto.estagioAnterior": STAGE_LABELS[fromStage] || fromStage, "projeto.estagioNovo": STAGE_LABELS[toStage] || toStage,
+        "projeto.coordenador": coordinator?.name || "", "projeto.coordenadorId": proj.assignedCoordinatorId || "",
       };
 
-      // Disparar cada workflow (fire-and-forget, não bloquear o Kanban)
-      for (const workflow of matchingWorkflows) {
-        fetch("/api/workflows/execute", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            workflowId: workflow.id,
-            nodes: workflow.flow_data.nodes,
-            edges: workflow.flow_data.edges,
-            context,
-          }),
-        }).catch((err) => {
-          console.error(`Erro ao disparar workflow ${workflow.id}:`, err);
-        });
+      for (const wf of matching) {
+        const fd = wf.flowData ?? wf.flow_data;
+        fetch("/api/workflows/execute", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ workflowId: wf.id, nodes: fd.nodes, edges: fd.edges, context }) }).catch(console.error);
       }
-    } catch (err) {
-      // Não bloquear a UI se o dispatch falhar
-      console.error("Erro ao disparar workflows de mudança de estágio:", err);
-    }
+    } catch (err) { console.error("Erro ao disparar workflows:", err); }
   };
 
   const addProject = async (payload: any, teamRoles: any) => {
     try {
-      const { data: newProjectData, error: insertError } = await supabase.from("project").insert(payload).select().single();
-      if (insertError) throw insertError;
-
+      const newProject = await apiFetch("/api/data/projects", { method: "POST", body: JSON.stringify(payload) });
       if (teamRoles && Object.keys(teamRoles).length > 0) {
-        const teamPromises = Object.entries(teamRoles).map(([role, memberId]) => {
-          if (memberId) {
-            return supabase.from("project_member").insert({ project_id: newProjectData.id, member_id: memberId, role_in_project: role });
-          }
+        const promises = Object.entries(teamRoles).map(([role, memberId]) => {
+          if (memberId) return apiFetch("/api/data/project-members", { method: "POST", body: JSON.stringify({ projectId: newProject.id, memberId, roleInProject: role }) });
           return Promise.resolve();
         });
-        await Promise.all(teamPromises);
+        await Promise.all(promises);
       }
-
       await fetchProjectsOnly();
       await fetchInitialData();
-    } catch (err: any) {
-      console.error(err);
-      toast.error(`Erro ao criar projeto manual: ${err.message}`);
-      throw err;
-    }
+    } catch (err: any) { console.error(err); toast.error(`Erro ao criar projeto: ${err.message}`); throw err; }
   };
 
-  const addMember = async (member: Member) => {
+  const addMember = async (m: Member) => {
     try {
-      const { data, error } = await supabase.from("member").insert({
-        name: member.name, nickname: member.nickname, email: member.email, phone: member.phone, role: member.role, is_active: member.isActive
-      }).select().single();
-      if (error) throw error;
-      setMembers((prev) => [...prev, { id: data.id, name: data.name, nickname: data.nickname, email: data.email, phone: data.phone, role: data.role, isActive: data.is_active }]);
+      const data = await apiFetch("/api/data/members", { method: "POST", body: JSON.stringify({ name: m.name, nickname: m.nickname, email: m.email, phone: m.phone, role: m.role, isActive: m.isActive }) });
+      setMembers((prev) => [...prev, mapMember(data)]);
       toast.success("Membro adicionado!");
     } catch (err: any) { toast.error(`Erro: ${err.message}`); }
   };
 
   const updateMember = async (id: string, updates: Partial<Member>) => {
     try {
-      const payload: any = {};
-      if (updates.name !== undefined) payload.name = updates.name;
-      if (updates.nickname !== undefined) payload.nickname = updates.nickname;
-      if (updates.email !== undefined) payload.email = updates.email;
-      if (updates.phone !== undefined) payload.phone = updates.phone;
-      if (updates.role !== undefined) payload.role = updates.role;
-      if (updates.isActive !== undefined) payload.is_active = updates.isActive;
-      const { error } = await supabase.from("member").update(payload).eq("id", id);
-      if (error) throw error;
+      await apiFetch(`/api/data/members/${id}`, { method: "PUT", body: JSON.stringify(toSnake(updates)) });
       setMembers((prev) => prev.map((m) => (m.id === id ? { ...m, ...updates } : m)));
     } catch (err: any) { toast.error(`Erro: ${err.message}`); }
   };
 
   const removeMember = async (id: string) => {
     try {
-      const { error } = await supabase.from("member").delete().eq("id", id);
-      if (error) throw error;
+      await apiFetch(`/api/data/members/${id}`, { method: "DELETE" });
       setMembers((prev) => prev.filter((m) => m.id !== id));
-      toast.success("Membro excluído!");
+      toast.success("Membro excluido!");
     } catch (err: any) { toast.error(`Erro: ${err.message}`); }
   };
 
   const addProjectMember = async (pm: ProjectMember) => {
     try {
-      const { data, error } = await supabase.from("project_member").insert({
-        project_id: pm.projectId, member_id: pm.memberId, role_in_project: pm.roleInProject
-      }).select().single();
-      if (error) throw error;
-      setProjectMembers((prev) => [...prev, { id: data.id, projectId: data.project_id, memberId: data.member_id, roleInProject: data.role_in_project } as any]);
-    } catch (err: any) { toast.error(`Erro ao adicionar membro à equipe: ${err.message}`); }
+      const data = await apiFetch("/api/data/project-members", { method: "POST", body: JSON.stringify({ projectId: pm.projectId, memberId: pm.memberId, roleInProject: pm.roleInProject }) });
+      setProjectMembers((prev) => [...prev, mapProjectMember(data)]);
+    } catch (err: any) { toast.error(`Erro ao adicionar membro a equipe: ${err.message}`); }
   };
 
   const removeProjectMember = async (id: string) => {
     try {
-      const { error } = await supabase.from("project_member").delete().eq("id", id);
-      if (error) throw error;
+      await apiFetch(`/api/data/project-members/${id}`, { method: "DELETE" });
       setProjectMembers((prev) => prev.filter((pm) => pm.id !== id));
     } catch (err: any) { toast.error(`Erro ao remover equipe: ${err.message}`); }
   };
 
-  const addStakeholder = async (stakeholder: Stakeholder) => {
+  const addStakeholder = async (s: Stakeholder) => {
     try {
-      const { data, error } = await supabase.from("stakeholder").insert({
-        name: stakeholder.name, phone: stakeholder.phone, email: stakeholder.email, role: stakeholder.role, project_id: stakeholder.projectId
-      }).select().single();
-      if (error) throw error;
-      setStakeholders((prev) => [...prev, { id: data.id, name: data.name, phone: data.phone, email: data.email, role: data.role, projectId: data.project_id }]);
+      const data = await apiFetch("/api/data/stakeholders", { method: "POST", body: JSON.stringify({ name: s.name, phone: s.phone, email: s.email, role: s.role, projectId: s.projectId }) });
+      setStakeholders((prev) => [...prev, mapStakeholder(data)]);
       toast.success("Stakeholder adicionado!");
     } catch (err: any) { toast.error(`Erro: ${err.message}`); }
   };
 
   const updateStakeholder = async (id: string, updates: Partial<Stakeholder>) => {
     try {
-      const payload: any = {};
-      if (updates.name !== undefined) payload.name = updates.name;
-      if (updates.phone !== undefined) payload.phone = updates.phone;
-      if (updates.email !== undefined) payload.email = updates.email;
-      if (updates.role !== undefined) payload.role = updates.role;
-      const { error } = await supabase.from("stakeholder").update(payload).eq("id", id);
-      if (error) throw error;
+      await apiFetch(`/api/data/stakeholders/${id}`, { method: "PUT", body: JSON.stringify(updates) });
       setStakeholders((prev) => prev.map((s) => (s.id === id ? { ...s, ...updates } : s)));
     } catch (err: any) { toast.error(`Erro: ${err.message}`); }
   };
 
   const removeStakeholder = async (id: string) => {
     try {
-      const { error } = await supabase.from("stakeholder").delete().eq("id", id);
-      if (error) throw error;
+      await apiFetch(`/api/data/stakeholders/${id}`, { method: "DELETE" });
       setStakeholders((prev) => prev.filter((s) => s.id !== id));
       toast.success("Stakeholder removido!");
     } catch (err: any) { toast.error(`Erro: ${err.message}`); }
@@ -491,8 +388,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const updateCompany = async (updates: Partial<Company>) => {
     try {
-      const { error } = await supabase.from("company").update(updates).eq("id", company.id);
-      if (error) throw error;
+      await apiFetch("/api/data/company", { method: "PUT", body: JSON.stringify({ id: company.id, ...updates }) });
       setCompany((prev) => ({ ...prev, ...updates }));
       toast.success("Empresa atualizada!");
     } catch (err: any) { toast.error(`Erro: ${err.message}`); }
@@ -500,11 +396,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const addLog = async (log: OnboardingLog) => {
     try {
-      const { data, error } = await supabase.from("onboarding_log").insert({
-        project_id: log.projectId, action: log.action, details: log.details, performed_by: log.performedBy
-      }).select().single();
-      if (error) throw error;
-      setLogs((prev) => [{ id: data.id, projectId: data.project_id, action: data.action, details: data.details, performedBy: data.performed_by, createdAt: data.created_at } as any, ...prev]);
+      const data = await apiFetch("/api/data/logs", { method: "POST", body: JSON.stringify({ projectId: log.projectId, action: log.action, details: log.details, performedBy: log.performedBy }) });
+      setLogs((prev) => [mapLog(data), ...prev]);
     } catch (err: any) { console.error(err); }
   };
 

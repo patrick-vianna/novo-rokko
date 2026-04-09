@@ -4,7 +4,7 @@ Sistema central de operações da V4 Company — gestão de onboarding, equipe, 
 
 ## Stack
 
-- **Framework**: Next.js 15 (App Router, TypeScript)
+- **Framework**: Next.js 16.2.2 (Turbopack) - (App Router, TypeScript)
 - **Estilo**: Tailwind CSS 4 (tema escuro)
 - **Banco de dados**: Supabase (PostgreSQL + Realtime)
 - **Autenticação**: Better Auth (Google OAuth, restrito a @v4company.com)

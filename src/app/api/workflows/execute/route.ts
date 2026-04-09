@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { tasks } from "@trigger.dev/sdk/v3";
-import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/db";
+import { workflow, workflowExecution } from "@/lib/schema";
+import { eq } from "drizzle-orm";
 import type { executeWorkflow } from "@/trigger/workflows";
 
 export async function POST(request: NextRequest) {
@@ -8,10 +10,7 @@ export async function POST(request: NextRequest) {
     const { workflowId, nodes, edges, context } = await request.json();
 
     if (!nodes || nodes.length === 0) {
-      return NextResponse.json(
-        { error: "Workflow sem nós para executar" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Workflow sem nos para executar" }, { status: 400 });
     }
 
     const handle = await tasks.trigger<typeof executeWorkflow>(
@@ -19,18 +18,14 @@ export async function POST(request: NextRequest) {
       { workflowId, nodes, edges, context },
     );
 
-    // Registrar execução no banco
     if (workflowId && workflowId !== "draft") {
-      await supabase.from("workflow_execution").insert({
-        workflow_id: workflowId,
+      await db.insert(workflowExecution).values({
+        workflowId,
         status: "running",
-        trigger_run_id: handle.id,
+        triggerRunId: handle.id,
       });
 
-      await supabase
-        .from("workflow")
-        .update({ last_run: new Date().toISOString() })
-        .eq("id", workflowId);
+      await db.update(workflow).set({ lastRun: new Date().toISOString() }).where(eq(workflow.id, workflowId));
     }
 
     return NextResponse.json({ success: true, runId: handle.id });

@@ -13,11 +13,11 @@ interface WorkflowItem {
   id: string;
   name: string;
   description?: string;
-  flow_data: { nodes: any[]; edges: any[] };
+  flowData: { nodes: any[]; edges: any[] };
   active: boolean;
-  last_run?: string;
-  created_at: string;
-  updated_at: string;
+  lastRun?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function AutomacoesPage() {
@@ -76,8 +76,8 @@ export default function AutomacoesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           workflowId: workflow.id,
-          nodes: workflow.flow_data.nodes,
-          edges: workflow.flow_data.edges,
+          nodes: workflow.flowData.nodes,
+          edges: workflow.flowData.edges,
         }),
       });
       if (!res.ok) throw new Error("Erro ao executar");
@@ -172,11 +172,11 @@ export default function AutomacoesPage() {
               </div>
 
               <div className="flex items-center gap-3 text-[10px] text-zinc-500 font-mono mb-4">
-                <span>{workflow.flow_data.nodes?.length || 0} nós</span>
+                <span>{workflow.flowData.nodes?.length || 0} nós</span>
                 <span>·</span>
                 <span>
-                  {workflow.last_run
-                    ? `Última exec: ${new Date(workflow.last_run).toLocaleDateString("pt-BR")}`
+                  {workflow.lastRun
+                    ? `Última exec: ${new Date(workflow.lastRun).toLocaleDateString("pt-BR")}`
                     : "Nunca executado"}
                 </span>
               </div>

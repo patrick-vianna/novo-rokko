@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/db";
+import { workflow } from "@/lib/schema";
+import { desc } from "drizzle-orm";
 
 export async function GET() {
   try {
-    const { data, error } = await supabase
-      .from("workflow")
-      .select("*")
-      .order("updated_at", { ascending: false });
-
-    if (error) throw error;
+    const data = await db.select().from(workflow).orderBy(desc(workflow.updatedAt));
     return NextResponse.json(data);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -18,22 +15,15 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, flow_data, active } = body;
+    const result = await db.insert(workflow).values({
+      name: body.name || "Sem titulo",
+      description: body.description || null,
+      flowData: body.flow_data || { nodes: [], edges: [] },
+      active: body.active || false,
+      createdBy: "system",
+    }).returning();
 
-    const { data, error } = await supabase
-      .from("workflow")
-      .insert({
-        name: name || "Sem título",
-        description: description || null,
-        flow_data: flow_data || { nodes: [], edges: [] },
-        active: active || false,
-        created_by: "system",
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return NextResponse.json(data, { status: 201 });
+    return NextResponse.json(result[0], { status: 201 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

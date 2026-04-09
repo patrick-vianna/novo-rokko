@@ -5,15 +5,14 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2, CheckCircle, XCircle, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/supabase";
 
 interface Execution {
   id: string;
   status: string;
-  trigger_run_id?: string;
+  triggerRunId?: string;
   results?: any;
-  started_at: string;
-  completed_at?: string;
+  startedAt: string;
+  completedAt?: string;
   error?: string;
 }
 
@@ -27,13 +26,9 @@ export default function ExecucoesPage() {
   useEffect(() => {
     const fetchExecutions = async () => {
       try {
-        const { data, error } = await supabase
-          .from("workflow_execution")
-          .select("*")
-          .eq("workflow_id", workflowId)
-          .order("started_at", { ascending: false });
-
-        if (error) throw error;
+        const res = await fetch(`/api/data/workflow-executions?workflowId=${workflowId}`);
+        if (!res.ok) throw new Error("Erro ao buscar execucoes");
+        const data = await res.json();
         setExecutions(data || []);
       } catch (err) {
         console.error(err);
@@ -91,9 +86,9 @@ export default function ExecucoesPage() {
                     <span className={cn("text-xs font-medium", status.color)}>
                       {status.label}
                     </span>
-                    {exec.trigger_run_id && (
+                    {exec.triggerRunId && (
                       <span className="text-[10px] font-mono text-zinc-600">
-                        {exec.trigger_run_id}
+                        {exec.triggerRunId}
                       </span>
                     )}
                   </div>
@@ -102,7 +97,7 @@ export default function ExecucoesPage() {
                   )}
                 </div>
                 <span className="text-[10px] font-mono text-zinc-500 shrink-0">
-                  {new Date(exec.started_at).toLocaleString("pt-BR")}
+                  {new Date(exec.startedAt).toLocaleString("pt-BR")}
                 </span>
               </div>
             );

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { db } from "@/lib/db";
+import { workflow } from "@/lib/schema";
+import { eq } from "drizzle-orm";
 
 export async function GET(
   _request: NextRequest,
@@ -7,14 +9,9 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const { data, error } = await supabase
-      .from("workflow")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    if (error) throw error;
-    return NextResponse.json(data);
+    const result = await db.select().from(workflow).where(eq(workflow.id, id)).limit(1);
+    if (!result[0]) return NextResponse.json({ error: "Nao encontrado" }, { status: 404 });
+    return NextResponse.json(result[0]);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -27,23 +24,16 @@ export async function PUT(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { name, description, flow_data, active } = body;
 
-    const payload: Record<string, any> = { updated_at: new Date().toISOString() };
-    if (name !== undefined) payload.name = name;
-    if (description !== undefined) payload.description = description;
-    if (flow_data !== undefined) payload.flow_data = flow_data;
-    if (active !== undefined) payload.active = active;
+    const payload: Record<string, any> = { updatedAt: new Date().toISOString() };
+    if (body.name !== undefined) payload.name = body.name;
+    if (body.description !== undefined) payload.description = body.description;
+    if (body.flow_data !== undefined) payload.flowData = body.flow_data;
+    if (body.active !== undefined) payload.active = body.active;
 
-    const { data, error } = await supabase
-      .from("workflow")
-      .update(payload)
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return NextResponse.json(data);
+    const result = await db.update(workflow).set(payload).where(eq(workflow.id, id)).returning();
+    if (!result[0]) return NextResponse.json({ error: "Nao encontrado" }, { status: 404 });
+    return NextResponse.json(result[0]);
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
@@ -55,8 +45,7 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params;
-    const { error } = await supabase.from("workflow").delete().eq("id", id);
-    if (error) throw error;
+    await db.delete(workflow).where(eq(workflow.id, id));
     return NextResponse.json({ success: true });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
