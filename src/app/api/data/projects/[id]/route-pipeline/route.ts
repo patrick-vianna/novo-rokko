@@ -191,6 +191,35 @@ export async function POST(
       return NextResponse.json({ success: true });
     }
 
+    if (action === "move_pipeline") {
+      const { targetPipeline, targetStage, productType } = body;
+      if (!targetPipeline || !targetStage) {
+        return NextResponse.json({ error: "targetPipeline e targetStage obrigatorios" }, { status: 400 });
+      }
+
+      // Determine lifecycle based on target stage
+      let lifecycleStatus = "active";
+      if (targetStage === "churn") lifecycleStatus = "churned";
+      if (targetStage === "encerrado") lifecycleStatus = "completed";
+
+      await db.update(project).set({
+        pipeline: targetPipeline,
+        stage: targetStage,
+        productType: productType || (targetPipeline === "recorrente" ? "byline" : targetPipeline === "estruturacao_estrategica" ? "estruturacao_estrategica" : "pending"),
+        lifecycleStatus,
+        updatedAt: new Date().toISOString(),
+      }).where(eq(project.id, id));
+
+      await db.insert(onboardingLog).values({
+        projectId: id,
+        action: "pipeline_moved",
+        details: { fromPipeline: proj.pipeline, fromStage: proj.stage, toPipeline: targetPipeline, toStage: targetStage },
+        performedBy: currentMember.id,
+      });
+
+      return NextResponse.json({ success: true });
+    }
+
     return NextResponse.json({ error: "Acao desconhecida" }, { status: 400 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

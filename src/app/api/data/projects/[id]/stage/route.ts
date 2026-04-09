@@ -14,9 +14,14 @@ export async function PUT(
   const { id } = await params;
   const { stage } = await request.json();
 
+  // Terminal stages update lifecycle
+  const updates: Record<string, any> = { stage, stageChangedAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  if (stage === "churn") { updates.lifecycleStatus = "churned"; updates.churnedAt = new Date().toISOString(); }
+  else if (stage === "encerrado") { updates.lifecycleStatus = "completed"; }
+
   const result = await db
     .update(project)
-    .set({ stage, stageChangedAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+    .set(updates)
     .where(eq(project.id, id))
     .returning();
 

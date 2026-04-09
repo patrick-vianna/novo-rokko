@@ -3,13 +3,15 @@ import React, { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/providers/app-provider";
 import { Pipeline } from "@/types";
-import { FolderKanban, Search, Plus } from "lucide-react";
+import { FolderKanban, Search, Plus, MoreVertical, ArrowRightLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PIPELINE_LIST, getStageLabel } from "@/lib/pipeline-config";
-import { MANAGEMENT_ROLES } from "@/lib/roles";
+import { MANAGEMENT_ROLES, ADMIN_ROLES } from "@/lib/roles";
 import { CreateProjectDrawer } from "@/components/CreateProjectDrawer";
+import { MovePipelineDialog } from "@/components/MovePipelineDialog";
+import { Project } from "@/types";
 
 const STATUS_FILTERS = [
   { id: "active", label: "Ativos" },
@@ -26,6 +28,8 @@ export const ProjectsView: React.FC<{ onProjectClick?: (p: any) => void }> = () 
   const [pipelineFilter, setPipelineFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState("active");
   const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [movingProject, setMovingProject] = useState<Project | null>(null);
+  const canMovePipeline = ADMIN_ROLES.includes(currentUser?.role || "");
 
   const filteredProjects = useMemo(() => {
     return projects.filter((p) => {
@@ -93,6 +97,7 @@ export const ProjectsView: React.FC<{ onProjectClick?: (p: any) => void }> = () 
                     <th className="px-6 py-4 font-semibold">Valor</th>
                     <th className="px-6 py-4 font-semibold">Coordenador</th>
                     <th className="px-6 py-4 font-semibold">Status</th>
+                    {canMovePipeline && <th className="px-3 py-4 w-10"></th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--color-v4-border)]">
@@ -133,6 +138,17 @@ export const ProjectsView: React.FC<{ onProjectClick?: (p: any) => void }> = () 
                             {project.lifecycleStatus || "active"}
                           </span>
                         </td>
+                        {canMovePipeline && (
+                          <td className="px-3 py-4">
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setMovingProject(project); }}
+                              className="p-1.5 rounded-md text-[var(--color-v4-text-disabled)] hover:text-white hover:bg-[var(--color-v4-surface)] transition-colors"
+                              title="Mover pipeline"
+                            >
+                              <ArrowRightLeft size={14} />
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -151,6 +167,7 @@ export const ProjectsView: React.FC<{ onProjectClick?: (p: any) => void }> = () 
       </div>
 
       {isCreatingProject && <CreateProjectDrawer onClose={() => setIsCreatingProject(false)} />}
+      {movingProject && <MovePipelineDialog project={movingProject} onClose={() => setMovingProject(null)} />}
     </>
   );
 };

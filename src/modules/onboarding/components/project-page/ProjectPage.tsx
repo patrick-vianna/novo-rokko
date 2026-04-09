@@ -3,11 +3,13 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAppStore } from "@/providers/app-provider";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, ChevronRight, ArrowRightLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Stage } from "@/types";
 import { getProjectPipeline, isRoutingStage, getStageLabel } from "@/lib/pipeline-config";
+import { ADMIN_ROLES } from "@/lib/roles";
 import { OnboardingRoutingDialog, EEFinishDialog, ChurnDialog } from "@/components/PipelineRoutingDialog";
+import { MovePipelineDialog } from "@/components/MovePipelineDialog";
 import { TabDados } from "./TabDados";
 import { TabEquipe } from "./TabEquipe";
 import { TabWorkspace } from "./TabWorkspace";
@@ -30,10 +32,12 @@ type TabId = typeof TABS[number]["id"];
 
 export function ProjectPage({ projectId }: { projectId: string }) {
   const router = useRouter();
-  const { projects, members, moveProject } = useAppStore();
+  const { projects, members, moveProject, currentUser } = useAppStore();
   const project = projects.find((p) => p.id === projectId);
   const [activeTab, setActiveTab] = useState<TabId>("dados");
   const [routingDialog, setRoutingDialog] = useState<"onboarding" | "ee" | "churn" | null>(null);
+  const [showMovePipeline, setShowMovePipeline] = useState(false);
+  const canMovePipeline = ADMIN_ROLES.includes(currentUser?.role || "");
 
   if (!project) {
     return (
@@ -92,12 +96,23 @@ export function ProjectPage({ projectId }: { projectId: string }) {
                 )}
               </div>
             </div>
-            {!isInactive && !isOngoing && (nextStage || isRouting) && (
-              <button onClick={handleAdvance} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--color-v4-red)] hover:bg-[var(--color-v4-red-hover)] text-white transition-colors shrink-0">
-                {isRouting ? "Escolher destino" : `Avancar para ${nextStage!.label}`}
-                <ChevronRight size={14} />
-              </button>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              {canMovePipeline && (
+                <button
+                  onClick={() => setShowMovePipeline(true)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium text-[var(--color-v4-text-muted)] border border-[var(--color-v4-border)] hover:text-white hover:bg-[var(--color-v4-surface)] transition-colors"
+                  title="Mover para outra pipeline"
+                >
+                  <ArrowRightLeft size={14} />
+                </button>
+              )}
+              {!isInactive && !isOngoing && (nextStage || isRouting) && (
+                <button onClick={handleAdvance} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--color-v4-red)] hover:bg-[var(--color-v4-red-hover)] text-white transition-colors">
+                  {isRouting ? "Escolher destino" : `Avancar para ${nextStage!.label}`}
+                  <ChevronRight size={14} />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex gap-1 -mb-px">
@@ -136,6 +151,7 @@ export function ProjectPage({ projectId }: { projectId: string }) {
       {routingDialog === "onboarding" && <OnboardingRoutingDialog project={project} onClose={() => setRoutingDialog(null)} onRouted={() => setRoutingDialog(null)} />}
       {routingDialog === "ee" && <EEFinishDialog project={project} onClose={() => setRoutingDialog(null)} onRouted={() => setRoutingDialog(null)} />}
       {routingDialog === "churn" && <ChurnDialog project={project} onClose={() => setRoutingDialog(null)} onRouted={() => setRoutingDialog(null)} />}
+      {showMovePipeline && <MovePipelineDialog project={project} onClose={() => setShowMovePipeline(false)} />}
     </div>
   );
 }

@@ -53,6 +53,7 @@ export const PIPELINES: Record<string, PipelineConfig> = {
       { id: "ee_semana_3", label: "Semana 3 — Diagnostico de Midia", order: 3 },
       { id: "ee_semana_4", label: "Semana 4 — Comercial", order: 4 },
       { id: "ee_semana_5", label: "Semana 5 — Entregas Finais", order: 5 },
+      { id: "encerrado", label: "Encerrado", order: 6 },
     ],
   },
 };

@@ -28,7 +28,8 @@ export type Stage =
   | "ee_semana_2"
   | "ee_semana_3"
   | "ee_semana_4"
-  | "ee_semana_5";
+  | "ee_semana_5"
+  | "encerrado";
 
 export type Pipeline = "onboarding" | "recorrente" | "estruturacao_estrategica";
 export type ProductType = "pending" | "byline" | "estruturacao_estrategica";
