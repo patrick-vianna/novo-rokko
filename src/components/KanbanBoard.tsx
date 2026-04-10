@@ -52,7 +52,8 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ proj
       </div>
 
       <div className="text-xs text-[var(--color-v4-text-muted)] mb-3 space-y-1">
-        <p className="truncate">{project.clientName}</p>
+        <p className="truncate font-medium">{project.clientName}</p>
+        {(project as any).clientEmail && <p className="truncate text-[10px] text-[var(--color-v4-text-disabled)]">{(project as any).clientEmail}</p>}
         <p className="font-mono text-[10px] bg-[var(--color-v4-surface)] px-1.5 py-0.5 rounded inline-block">
           R$ {((Number(project.valorEscopo) || 0) + (Number(project.valorRecorrente) || 0)).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
         </p>

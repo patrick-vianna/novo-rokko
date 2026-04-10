@@ -17,10 +17,12 @@ import { TabCredenciais } from "./TabCredenciais";
 import { TabHistorico } from "./TabHistorico";
 import { TabAutomacoes } from "./TabAutomacoes";
 import { TabObservacoes } from "./TabObservacoes";
+import { TabStakeholders } from "./TabStakeholders";
 
 const TABS = [
   { id: "dados", label: "Dados" },
   { id: "equipe", label: "Equipe" },
+  { id: "stakeholders", label: "Stakeholders" },
   { id: "workspace", label: "Workspace" },
   { id: "credenciais", label: "Credenciais" },
   { id: "historico", label: "Historico" },
@@ -77,7 +79,10 @@ export function ProjectPage({ projectId }: { projectId: string }) {
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-display font-bold text-white truncate">{project.name}</h1>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-sm text-[var(--color-v4-text-muted)]">{project.clientName}</span>
+                <span className="text-sm text-[var(--color-v4-text-muted)]">
+                  {project.clientName}
+                  {(project as any).clientEmail && <span className="text-[var(--color-v4-text-disabled)]"> · {(project as any).clientEmail}</span>}
+                </span>
                 {/* Pipeline badge */}
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border" style={{ color: pipeline.color, borderColor: `${pipeline.color}40`, backgroundColor: `${pipeline.color}15` }}>
                   {pipeline.shortName}
@@ -139,6 +144,7 @@ export function ProjectPage({ projectId }: { projectId: string }) {
         <div className="max-w-6xl mx-auto p-6">
           {activeTab === "dados" && <TabDados project={project} />}
           {activeTab === "equipe" && <TabEquipe project={project} />}
+          {activeTab === "stakeholders" && <TabStakeholders project={project} />}
           {activeTab === "workspace" && <TabWorkspace project={project} />}
           {activeTab === "credenciais" && <TabCredenciais projectId={project.id} />}
           {activeTab === "historico" && <TabHistorico projectId={project.id} />}
