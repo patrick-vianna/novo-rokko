@@ -94,10 +94,9 @@ export const Sidebar: React.FC = () => {
                       className={cn(
                         "flex items-center w-full gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors",
                         isActive
-                          ? "text-white shadow-md"
+                          ? "bg-[var(--color-v4-red)] text-white shadow-md shadow-[var(--color-v4-red-muted)]"
                           : "text-[var(--color-v4-text-muted)] hover:bg-[var(--color-v4-card-hover)] hover:text-white",
                       )}
-                      style={isActive ? { backgroundColor: `${config.color}20`, boxShadow: `0 4px 12px ${config.color}30` } : undefined}
                     >
                       <Icon size={18} />
                       <span className="flex-1 truncate">{item.name}</span>
