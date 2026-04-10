@@ -28,6 +28,15 @@ export const auth = betterAuth({
     },
   },
 
+  trustedOrigins: [
+    "https://rokko.rustontools.tech",
+    "https://ops.rokko.rustontools.tech",
+    "https://sales.rokko.rustontools.tech",
+    "https://finance.rokko.rustontools.tech",
+    "https://people.rokko.rustontools.tech",
+    "http://localhost:3000",
+  ],
+
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
 });
