@@ -368,18 +368,18 @@ export function TabDados({ project }: { project: Project }) {
         isSaving={isSaving}
         readContent={
           <div className="grid grid-cols-2 gap-4">
-            <StaticField label="Empresa" value={project.clientName} />
+            <StaticField label="Nome da Empresa" value={project.clientName} />
             <StaticField label="CNPJ" value={project.clientCnpj} />
-            <StaticField label="Telefone" value={project.clientPhone} />
-            <StaticField label="Email" value={project.clientEmail} />
+            <StaticField label="Telefone do Contato" value={project.clientPhone} />
+            <StaticField label="Email do Contato" value={project.clientEmail} />
           </div>
         }
         editContent={
           <div className="grid grid-cols-2 gap-4">
-            <InputField label="Empresa" value={clientForm.clientName} onChange={(v) => setClientForm({ ...clientForm, clientName: v })} />
+            <InputField label="Nome da Empresa" value={clientForm.clientName} onChange={(v) => setClientForm({ ...clientForm, clientName: v })} />
             <InputField label="CNPJ" value={clientForm.clientCnpj} onChange={(v) => setClientForm({ ...clientForm, clientCnpj: v })} placeholder="00.000.000/0000-00" />
-            <InputField label="Telefone" value={clientForm.clientPhone} onChange={(v) => setClientForm({ ...clientForm, clientPhone: v })} placeholder="(00) 00000-0000" />
-            <InputField label="Email" value={clientForm.clientEmail} onChange={(v) => setClientForm({ ...clientForm, clientEmail: v })} type="email" placeholder="email@empresa.com" />
+            <InputField label="Telefone do Contato" value={clientForm.clientPhone} onChange={(v) => setClientForm({ ...clientForm, clientPhone: v })} placeholder="(00) 00000-0000" />
+            <InputField label="Email do Contato" value={clientForm.clientEmail} onChange={(v) => setClientForm({ ...clientForm, clientEmail: v })} type="email" placeholder="email@empresa.com" />
           </div>
         }
       />

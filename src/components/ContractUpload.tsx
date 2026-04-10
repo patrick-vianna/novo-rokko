@@ -20,10 +20,10 @@ export function ContractUpload({ project }: { project: Project }) {
     setUploading(true);
     try {
       const path = `contratos/${project.id}/${file.name}`;
-      const { error: uploadError } = await supabase.storage.from("contratos").upload(path, file, { upsert: true });
+      const { error: uploadError } = await supabase.storage.from("contracts").upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage.from("contratos").getPublicUrl(path);
+      const { data: { publicUrl } } = supabase.storage.from("contracts").getPublicUrl(path);
 
       updateProject(project.id, { contractUrl: publicUrl, contractFilename: file.name } as any);
       toast.success("Contrato enviado!");

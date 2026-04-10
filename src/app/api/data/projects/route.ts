@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { project, member } from "@/lib/schema";
+import { project, member, stakeholder } from "@/lib/schema";
 import { desc, eq } from "drizzle-orm";
 import { getSession, getMemberByEmail } from "@/lib/db-utils";
 
@@ -28,5 +28,18 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const result = await db.insert(project).values(body).returning();
-  return NextResponse.json(result[0], { status: 201 });
+  const newProject = result[0];
+
+  // Auto-create primary stakeholder from client data
+  if (newProject && newProject.clientName) {
+    await db.insert(stakeholder).values({
+      projectId: newProject.id,
+      name: newProject.clientName,
+      email: newProject.clientEmail || null,
+      phone: newProject.clientPhone || null,
+      role: "cliente_principal",
+    }).catch(() => {}); // Non-blocking
+  }
+
+  return NextResponse.json(newProject, { status: 201 });
 }
