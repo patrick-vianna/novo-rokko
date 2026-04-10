@@ -6,7 +6,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     await signIn.social({
       provider: "google",
-      callbackURL: "/jornada",
+      callbackURL: "/",
     });
   };
 

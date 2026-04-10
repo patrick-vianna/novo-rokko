@@ -5,6 +5,7 @@ import {
   timestamp,
   uuid,
   jsonb,
+  integer,
   numeric,
   date,
   unique,
@@ -230,6 +231,22 @@ export const credentialAccessLog = pgTable("credential_access_log", {
 }, (table) => [
   foreignKey({ columns: [table.credentialId], foreignColumns: [clientCredential.id], name: "credential_access_log_credential_id_fkey" }).onDelete("cascade"),
   foreignKey({ columns: [table.accessedBy], foreignColumns: [member.id], name: "credential_access_log_accessed_by_fkey" }),
+]);
+
+// ==============================
+// Tabela: user_shortcut
+// ==============================
+export const userShortcut = pgTable("user_shortcut", {
+  id: uuid().defaultRandom().primaryKey().notNull(),
+  memberId: uuid("member_id").notNull(),
+  systemId: text("system_id").notNull(),
+  pageName: text("page_name").notNull(),
+  pageHref: text("page_href").notNull(),
+  icon: text(),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow(),
+}, (table) => [
+  foreignKey({ columns: [table.memberId], foreignColumns: [member.id], name: "user_shortcut_member_id_fkey" }).onDelete("cascade"),
 ]);
 
 // ==============================

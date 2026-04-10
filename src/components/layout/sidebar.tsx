@@ -4,14 +4,16 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAppStore } from "@/providers/app-provider";
+import { useSubdomain } from "@/hooks/useSubdomain";
 import { signOut } from "@/lib/auth-client";
-import { LogOut, Menu, X } from "lucide-react";
+import { LogOut, Menu, X, ArrowLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { navigation } from "@/lib/navigation";
 import { isDev } from "@/lib/roles";
+import { getSubdomainUrl } from "@/lib/subdomains";
 
 export const Sidebar: React.FC = () => {
   const { currentUser } = useAppStore();
+  const config = useSubdomain();
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -21,6 +23,8 @@ export const Sidebar: React.FC = () => {
   };
 
   if (!currentUser) return null;
+
+  const userIsDev = isDev(currentUser.role || "");
 
   return (
     <>
@@ -39,24 +43,33 @@ export const Sidebar: React.FC = () => {
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
       >
+        {/* Logo — shows system name */}
         <div className="p-6 flex items-center justify-center border-b border-[var(--color-v4-border)]">
-          <h1 className="text-xl font-display font-bold text-white tracking-tight">
-            V4 <span className="text-[var(--color-v4-red)]">Rokko</span>
+          <h1 className="text-xl font-display font-bold tracking-tight">
+            <span className="text-white">Rokko</span>{" "}
+            <span style={{ color: config.color }}>{config.name}</span>
           </h1>
         </div>
 
+        {/* Navigation from subdomain config */}
         <nav className="flex-1 p-4 space-y-5 overflow-y-auto">
-          {navigation.map((section) => (
-            <div key={section.title}>
-              <p className="px-4 mb-2 text-[10px] font-mono uppercase tracking-widest text-[var(--color-v4-text-muted)]">
-                {section.title}
-              </p>
+          {config.navigation.map((section, sIdx) => (
+            <div key={section.title || sIdx}>
+              {section.title && (
+                <p className="px-4 mb-2 text-[10px] font-mono uppercase tracking-widest text-[var(--color-v4-text-muted)]">
+                  {section.title}
+                </p>
+              )}
               <div className="space-y-1">
                 {section.items.map((item) => {
                   const Icon = item.icon;
-                  const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+                  const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href + "/"));
 
-                  if (item.disabled && !isDev(currentUser?.role || "")) {
+                  // devOnly items: hidden for non-dev users
+                  if (item.devOnly && !userIsDev) return null;
+
+                  // Disabled items: shown as non-clickable (unless dev)
+                  if (item.disabled && !userIsDev) {
                     return (
                       <div
                         key={item.href}
@@ -81,13 +94,19 @@ export const Sidebar: React.FC = () => {
                       className={cn(
                         "flex items-center w-full gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors",
                         isActive
-                          ? "bg-[var(--color-v4-red)] text-white shadow-md shadow-[var(--color-v4-red-muted)]"
+                          ? "text-white shadow-md"
                           : "text-[var(--color-v4-text-muted)] hover:bg-[var(--color-v4-card-hover)] hover:text-white",
                       )}
+                      style={isActive ? { backgroundColor: `${config.color}20`, boxShadow: `0 4px 12px ${config.color}30` } : undefined}
                     >
                       <Icon size={18} />
                       <span className="flex-1 truncate">{item.name}</span>
-                      {item.disabled && isDev(currentUser?.role || "") && (
+                      {item.disabled && userIsDev && (
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/20">
+                          Dev
+                        </span>
+                      )}
+                      {item.devOnly && userIsDev && (
                         <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/20">
                           Dev
                         </span>
@@ -96,10 +115,8 @@ export const Sidebar: React.FC = () => {
                         <span
                           className={cn(
                             "text-[9px] font-mono px-1.5 py-0.5 rounded-full border",
-                            item.badge === "Novo"
-                              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
-                              : item.badge === "Beta"
-                                ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/20"
+                            item.badge === "Novo" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/20"
+                              : item.badge === "Beta" ? "bg-yellow-500/15 text-yellow-400 border-yellow-500/20"
                                 : "bg-zinc-800 text-zinc-400 border-zinc-700/50",
                           )}
                         >
@@ -114,6 +131,19 @@ export const Sidebar: React.FC = () => {
           ))}
         </nav>
 
+        {/* Back to Hub (when not on hub) */}
+        {config.id !== "hub" && (
+          <div className="px-4 pb-2">
+            <a
+              href={getSubdomainUrl("")}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs text-[var(--color-v4-text-muted)] hover:text-white hover:bg-[var(--color-v4-card-hover)] transition-colors"
+            >
+              <ArrowLeft size={14} /> Voltar ao Hub
+            </a>
+          </div>
+        )}
+
+        {/* User */}
         <div className="p-4 border-t border-[var(--color-v4-border)]">
           <div className="flex items-center gap-3 mb-4 px-2">
             <img
