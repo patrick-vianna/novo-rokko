@@ -37,6 +37,14 @@ export const auth = betterAuth({
     "http://localhost:3000",
   ],
 
+  advanced: {
+    cookiePrefix: "rokko",
+    crossSubDomainCookies: {
+      enabled: true,
+      domain: process.env.NODE_ENV === "production" ? ".rustontools.tech" : undefined,
+    },
+  },
+
   baseURL: process.env.BETTER_AUTH_URL,
   secret: process.env.BETTER_AUTH_SECRET,
 });

@@ -5,7 +5,14 @@ import { useMemo } from "react";
 import { getSubdomainConfig, SUBDOMAINS, type SubdomainConfig } from "@/lib/subdomains";
 
 export function useSubdomain(): SubdomainConfig {
-  const searchParams = useSearchParams();
+  // useSearchParams may return null during SSR or outside Suspense
+  let subdomainParam = "";
+  try {
+    const searchParams = useSearchParams();
+    subdomainParam = searchParams?.get("subdomain") || "";
+  } catch {
+    // Fallback if outside Suspense boundary
+  }
 
   return useMemo(() => {
     if (typeof window === "undefined") return SUBDOMAINS.hub;
@@ -20,7 +27,6 @@ export function useSubdomain(): SubdomainConfig {
     }
 
     // Dev: use query param
-    const param = searchParams.get("subdomain") || "";
-    return getSubdomainConfig(param);
-  }, [searchParams]);
+    return getSubdomainConfig(subdomainParam);
+  }, [subdomainParam]);
 }

@@ -22,8 +22,10 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Auth cookie (dev: plain name, prod HTTPS: __Secure- prefix)
+  // Auth cookie — check new prefix (rokko) and legacy (better-auth), both plain and __Secure-
   const sessionCookie =
+    request.cookies.get("rokko.session_token") ||
+    request.cookies.get("__Secure-rokko.session_token") ||
     request.cookies.get("better-auth.session_token") ||
     request.cookies.get("__Secure-better-auth.session_token");
 
