@@ -4,7 +4,7 @@ import { clientCredential, credentialAccessLog, onboardingLog } from "@/lib/sche
 import { eq } from "drizzle-orm";
 import { encrypt, decrypt } from "@/lib/vault";
 import { getSession, getMemberByEmail } from "@/lib/db-utils";
-import { COORD_ROLES, VIEWER_ROLES, ADMIN_ROLES } from "@/lib/roles";
+import { ADMIN_ROLES } from "@/lib/roles";
 
 // GET — credential WITH decrypted password
 export async function GET(
@@ -15,8 +15,8 @@ export async function GET(
   if (!session?.user?.email) return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
 
   const currentMember = await getMemberByEmail(session.user.email);
-  if (!currentMember || !VIEWER_ROLES.includes(currentMember.role)) {
-    return NextResponse.json({ error: "Sem permissao para ver senhas" }, { status: 403 });
+  if (!currentMember) {
+    return NextResponse.json({ error: "Membro nao encontrado" }, { status: 403 });
   }
 
   const { id } = await params;
@@ -62,8 +62,8 @@ export async function PUT(
   if (!session?.user?.email) return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
 
   const currentMember = await getMemberByEmail(session.user.email);
-  if (!currentMember || !COORD_ROLES.includes(currentMember.role)) {
-    return NextResponse.json({ error: "Sem permissao" }, { status: 403 });
+  if (!currentMember) {
+    return NextResponse.json({ error: "Membro nao encontrado" }, { status: 403 });
   }
 
   const { id } = await params;

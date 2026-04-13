@@ -42,8 +42,8 @@ export function CredentialsPanel({ projectId }: { projectId: string }) {
   const { currentUser } = useAppStore();
   const role = currentUser?.role || "";
 
-  const canWrite = COORD_ROLES.includes(role);
-  const canViewPassword = VIEWER_ROLES.includes(role);
+  const canWrite = !!role;            // qualquer membro autenticado
+  const canViewPassword = !!role;     // qualquer membro autenticado
   const canViewLogs = ADMIN_ROLES.includes(role);
   const canDelete = ADMIN_ROLES.includes(role);
 

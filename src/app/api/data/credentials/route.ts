@@ -4,7 +4,6 @@ import { clientCredential, credentialAccessLog, member, onboardingLog } from "@/
 import { eq } from "drizzle-orm";
 import { encrypt } from "@/lib/vault";
 import { getSession, getMemberByEmail } from "@/lib/db-utils";
-import { COORD_ROLES } from "@/lib/roles";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -37,8 +36,8 @@ export async function POST(request: NextRequest) {
   if (!session?.user?.email) return NextResponse.json({ error: "Nao autenticado" }, { status: 401 });
 
   const currentMember = await getMemberByEmail(session.user.email);
-  if (!currentMember || !COORD_ROLES.includes(currentMember.role)) {
-    return NextResponse.json({ error: "Sem permissao" }, { status: 403 });
+  if (!currentMember) {
+    return NextResponse.json({ error: "Membro nao encontrado" }, { status: 403 });
   }
 
   const body = await request.json();
