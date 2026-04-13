@@ -65,10 +65,13 @@ export function WorkspaceCreationButton({ project }: { project: Project }) {
 
       const fixedPhones = ["554796769946"];
       const fixedAdminPhones = ["554796769946"];
-      const clientPhone = project.clientPhone || "";
 
-      const allPhones = [...new Set([...fixedPhones, coordPhone, ...teamPhones, clientPhone, ...stakeholderPhones])].filter(Boolean);
-      const adminPhones = [...new Set([...fixedAdminPhones, coordPhone])].filter(Boolean);
+      // Gabriel Soligo: admin fixo em todos os grupos
+      const gabriel = members.find((m) => m.email === "gabriel.bianchini@v4company.com");
+      const gabrielPhone = gabriel?.phone || "";
+
+      const allPhones = [...new Set([...fixedPhones, gabrielPhone, coordPhone, ...teamPhones, ...stakeholderPhones])].filter(Boolean);
+      const adminPhones = [...new Set([...fixedAdminPhones, gabrielPhone, coordPhone])].filter(Boolean);
 
       // Fire webhooks (fire-and-forget per env)
       if (prevStatus.gchat !== "created") {
