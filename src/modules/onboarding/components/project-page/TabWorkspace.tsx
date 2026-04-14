@@ -85,11 +85,7 @@ export function TabWorkspace({ project }: { project: Project }) {
           <h3 className="text-sm font-semibold text-[var(--color-v4-text-muted)] uppercase tracking-wider">Workspaces</h3>
           {(() => {
             const allCreated = ws?.gchat === "created" && ws?.whatsapp === "created" && ws?.gdrive === "created" && ws?.ekyte === "created";
-            return !allCreated ? (
-              <div className="w-56">
-                <WorkspaceCreationButton project={project} />
-              </div>
-            ) : null;
+            return !allCreated ? <WorkspaceCreationButton project={project} compact /> : null;
           })()}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">

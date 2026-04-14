@@ -13,7 +13,7 @@ import {
 } from "@/lib/webhooks";
 import toast from "react-hot-toast";
 
-export function WorkspaceCreationButton({ project }: { project: Project }) {
+export function WorkspaceCreationButton({ project, compact }: { project: Project; compact?: boolean }) {
   const { updateProject, members, projectMembers, stakeholders } = useAppStore();
   const [isCreating, setIsCreating] = useState(false);
 
@@ -112,6 +112,22 @@ export function WorkspaceCreationButton({ project }: { project: Project }) {
       setIsCreating(false);
     }
   };
+
+  if (compact) {
+    return (
+      <button
+        onClick={handleCreate}
+        disabled={isCreating || allCreated}
+        className="flex items-center gap-1 text-xs text-[var(--color-v4-red)] hover:text-white transition-colors disabled:opacity-50"
+      >
+        {isCreating ? (
+          <><Loader2 size={13} className="animate-spin" /> Criando...</>
+        ) : (
+          <><Building2 size={13} /> Criar pendentes</>
+        )}
+      </button>
+    );
+  }
 
   return (
     <button
