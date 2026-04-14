@@ -83,11 +83,14 @@ export function TabWorkspace({ project }: { project: Project }) {
       <section className="bg-[var(--color-v4-card)] border border-[var(--color-v4-border)] rounded-xl p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-[var(--color-v4-text-muted)] uppercase tracking-wider">Workspaces</h3>
-          {project.stage === "criar_workspace" && (
-            <div className="w-56">
-              <WorkspaceCreationButton project={project} />
-            </div>
-          )}
+          {(() => {
+            const allCreated = ws?.gchat === "created" && ws?.whatsapp === "created" && ws?.gdrive === "created" && ws?.ekyte === "created";
+            return !allCreated ? (
+              <div className="w-56">
+                <WorkspaceCreationButton project={project} />
+              </div>
+            ) : null;
+          })()}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {ENV_CONFIG.map(({ key, label, icon: Icon, linkField, statusField }) => {

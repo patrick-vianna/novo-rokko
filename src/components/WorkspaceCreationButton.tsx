@@ -20,8 +20,10 @@ export function WorkspaceCreationButton({ project }: { project: Project }) {
   const ws = project.workspaceStatus || { gchat: "pending", whatsapp: "pending", gdrive: "pending", ekyte: "pending" };
   const allCreated = ws.gchat === "created" && ws.whatsapp === "created" && ws.gdrive === "created" && ws.ekyte === "created";
 
+  const hasPending = !allCreated;
+
   const handleCreate = async () => {
-    if (project.workspaceCreationStarted || allCreated) return;
+    if (allCreated) return;
     setIsCreating(true);
 
     const prevStatus = { ...ws };
@@ -114,17 +116,15 @@ export function WorkspaceCreationButton({ project }: { project: Project }) {
   return (
     <button
       onClick={handleCreate}
-      disabled={isCreating || allCreated || project.workspaceCreationStarted}
+      disabled={isCreating || allCreated}
       className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
     >
       {isCreating ? (
         <><Loader2 size={18} className="animate-spin" /> Criando ambientes...</>
       ) : allCreated ? (
         <><CheckCircle2 size={18} /> Ambientes Criados</>
-      ) : project.workspaceCreationStarted ? (
-        <><Building2 size={18} /> Criacao Inicializada</>
       ) : (
-        <><Building2 size={18} /> Criar Ambientes (Automatico)</>
+        <><Building2 size={18} /> Criar Workspaces Pendentes</>
       )}
     </button>
   );
