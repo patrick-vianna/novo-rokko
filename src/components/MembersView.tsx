@@ -8,6 +8,7 @@ import { Member, Role } from "@/types";
 import toast from "react-hot-toast";
 
 const ROLES: { value: Role; label: string }[] = [
+  { value: "dev", label: "Dev" },
   { value: "owner", label: "Owner" },
   { value: "admin", label: "Admin" },
   { value: "coord_geral", label: "Coordenador Geral" },
@@ -146,10 +147,7 @@ export const MembersView: React.FC = () => {
             </p>
           </div>
 
-          {(currentUser?.role === "owner" ||
-            currentUser?.role === "admin" ||
-            currentUser?.role === "coord_geral" ||
-            currentUser?.role === "coord_equipe") && (
+          {COORD_ROLES.includes(currentUser?.role || "") && (
             <button
               onClick={() => openModal()}
               className="flex items-center gap-2 px-4 py-2 bg-[var(--color-v4-red)] hover:bg-[var(--color-v4-red-hover)] text-white rounded-xl font-medium transition-colors"

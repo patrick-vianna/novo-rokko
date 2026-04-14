@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useAppStore } from "@/providers/app-provider";
 import { Project, ProjectMember } from "@/types";
-import { Users, Plus, Trash2, Crown, UserCheck } from "lucide-react";
+import { Users, Plus, Trash2, Crown, UserCheck, Pencil, X, Save } from "lucide-react";
 import toast from "react-hot-toast";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -17,10 +17,12 @@ const ROLE_LABELS: Record<string, string> = {
 const ASSIGNABLE_ROLES = ["gestor_projetos", "designer", "gestor_trafego", "copywriter"];
 
 export function TabEquipe({ project }: { project: Project }) {
-  const { members, projectMembers, addProjectMember, removeProjectMember } = useAppStore();
+  const { members, projectMembers, addProjectMember, removeProjectMember, updateProject } = useAppStore();
   const [adding, setAdding] = useState(false);
   const [newRole, setNewRole] = useState("");
   const [newMemberId, setNewMemberId] = useState("");
+  const [editingCoord, setEditingCoord] = useState(false);
+  const [selectedCoordId, setSelectedCoordId] = useState(project.assignedCoordinatorId || "");
 
   const teamMembers = projectMembers.filter((pm) => pm.projectId === project.id);
   const coordinator = project.assignedCoordinatorId
@@ -46,14 +48,36 @@ export function TabEquipe({ project }: { project: Project }) {
           <Crown size={14} /> Lideranca
         </h3>
         <div className="space-y-3">
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--color-v4-surface)]">
-            <div className="w-9 h-9 rounded-full bg-[var(--color-v4-red)]/20 border border-[var(--color-v4-red)]/30 flex items-center justify-center text-xs font-bold text-[var(--color-v4-red)] uppercase">
+          <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--color-v4-surface)] group">
+            <div className="w-9 h-9 rounded-full bg-[var(--color-v4-red)]/20 border border-[var(--color-v4-red)]/30 flex items-center justify-center text-xs font-bold text-[var(--color-v4-red)] uppercase shrink-0">
               {coordinator?.name?.charAt(0) || "?"}
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-white">{coordinator?.name || "Nao atribuido"}</p>
-              <p className="text-xs text-[var(--color-v4-text-muted)]">Coordenador de Equipe</p>
-            </div>
+            {editingCoord ? (
+              <div className="flex-1 flex items-center gap-2">
+                <select
+                  value={selectedCoordId}
+                  onChange={(e) => setSelectedCoordId(e.target.value)}
+                  className="flex-1 p-2 bg-[var(--color-v4-bg)] border border-[var(--color-v4-border)] rounded-md text-sm text-white"
+                >
+                  <option value="">Selecione...</option>
+                  {members.filter(m => (m.role === "coord_equipe" || m.role === "coord_geral") && m.isActive).map(m => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+                <button onClick={() => { if (selectedCoordId) { updateProject(project.id, { assignedCoordinatorId: selectedCoordId }); toast.success("Coordenador atribuido!"); } setEditingCoord(false); }} className="p-1.5 bg-[var(--color-v4-red)] text-white rounded-md"><Save size={14} /></button>
+                <button onClick={() => { setSelectedCoordId(project.assignedCoordinatorId || ""); setEditingCoord(false); }} className="p-1.5 text-[var(--color-v4-text-muted)] hover:text-white"><X size={14} /></button>
+              </div>
+            ) : (
+              <>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">{coordinator?.name || "Nao atribuido"}</p>
+                  <p className="text-xs text-[var(--color-v4-text-muted)]">Coordenador de Equipe</p>
+                </div>
+                <button onClick={() => { setSelectedCoordId(project.assignedCoordinatorId || ""); setEditingCoord(true); }} className="p-1.5 rounded-md opacity-0 group-hover:opacity-100 text-[var(--color-v4-text-muted)] hover:text-white hover:bg-[var(--color-v4-bg)] transition-all">
+                  <Pencil size={13} />
+                </button>
+              </>
+            )}
           </div>
           {soldBy && (
             <div className="flex items-center gap-3 p-3 rounded-lg bg-[var(--color-v4-surface)]">

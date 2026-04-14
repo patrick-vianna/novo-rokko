@@ -7,7 +7,7 @@ import { Project, Stage } from "@/types";
 import {
   X, ChevronRight, ChevronDown, ExternalLink, Package,
   RefreshCw, CheckCircle2, CircleDashed, Clock,
-  Users, FolderOpen, FileText,
+  Users, FolderOpen, FileText, Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -52,8 +52,10 @@ const WS_STATUS = {
 };
 
 export const ProjectDrawer: React.FC<{ project: Project | null; onClose: () => void }> = ({ project, onClose }) => {
-  const { members, moveProject, projects, projectMembers, stakeholders } = useAppStore();
+  const { members, moveProject, updateProject, projects, projectMembers, stakeholders } = useAppStore();
   const [routingDialog, setRoutingDialog] = useState<"onboarding" | "ee" | "churn" | null>(null);
+  const [editingCoord, setEditingCoord] = useState(false);
+  const [selectedCoordId, setSelectedCoordId] = useState("");
 
   if (!project) return null;
 
@@ -142,11 +144,32 @@ export const ProjectDrawer: React.FC<{ project: Project | null; onClose: () => v
           {/* Equipe + Stakeholders */}
           <Section title="Equipe & Stakeholders" icon={Users}>
             <div className="pt-3 space-y-2">
-              {coordinator && (
+              {/* Coordinator — editable */}
+              {editingCoord ? (
+                <div className="flex items-center gap-2">
+                  <select
+                    value={selectedCoordId}
+                    onChange={(e) => setSelectedCoordId(e.target.value)}
+                    className="flex-1 p-1.5 bg-[var(--color-v4-bg)] border border-[var(--color-v4-border)] rounded-md text-xs text-white"
+                  >
+                    <option value="">Selecione coordenador...</option>
+                    {members.filter(m => (m.role === "coord_equipe" || m.role === "coord_geral") && m.isActive).map(m => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                  </select>
+                  <button onClick={() => { if (selectedCoordId) { updateProject(p.id, { assignedCoordinatorId: selectedCoordId }); } setEditingCoord(false); }} className="px-2 py-1.5 bg-[var(--color-v4-red)] text-white rounded-md text-[10px] font-medium">OK</button>
+                  <button onClick={() => setEditingCoord(false)} className="px-2 py-1.5 text-[var(--color-v4-text-muted)] hover:text-white text-[10px]">
+                    <X size={12} />
+                  </button>
+                </div>
+              ) : (
                 <div className="flex items-center gap-2 text-xs">
-                  <div className="w-6 h-6 rounded-full bg-[var(--color-v4-red)]/20 border border-[var(--color-v4-red)]/30 flex items-center justify-center text-[10px] font-bold text-[var(--color-v4-red)]">{coordinator.name.charAt(0)}</div>
-                  <span className="text-white flex-1">{coordinator.name}</span>
+                  <div className="w-6 h-6 rounded-full bg-[var(--color-v4-red)]/20 border border-[var(--color-v4-red)]/30 flex items-center justify-center text-[10px] font-bold text-[var(--color-v4-red)]">{coordinator?.name?.charAt(0) || "?"}</div>
+                  <span className="text-white flex-1">{coordinator?.name || "Nao atribuido"}</span>
                   <span className="text-[var(--color-v4-text-disabled)]">Coordenador</span>
+                  <button onClick={() => { setSelectedCoordId(p.assignedCoordinatorId || ""); setEditingCoord(true); }} className="p-1 text-[var(--color-v4-text-disabled)] hover:text-white transition-colors">
+                    <Pencil size={11} />
+                  </button>
                 </div>
               )}
               {team.map(tm => {
