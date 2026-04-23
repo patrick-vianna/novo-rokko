@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PIPELINE_LIST, getStageLabel } from "@/lib/pipeline-config";
 import { MANAGEMENT_ROLES, ADMIN_ROLES } from "@/lib/roles";
+import { filterVisibleProjects } from "@/lib/project-visibility";
 import { CreateProjectDrawer } from "@/components/CreateProjectDrawer";
 import { MovePipelineDialog } from "@/components/MovePipelineDialog";
 import { Project } from "@/types";
@@ -23,7 +24,7 @@ const STATUS_FILTERS = [
 
 export const ProjectsView: React.FC<{ onProjectClick?: (p: any) => void }> = () => {
   const router = useRouter();
-  const { projects, members, currentUser } = useAppStore();
+  const { projects, members, currentUser, projectMembers } = useAppStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [pipelineFilter, setPipelineFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState("active");
@@ -31,18 +32,21 @@ export const ProjectsView: React.FC<{ onProjectClick?: (p: any) => void }> = () 
   const [movingProject, setMovingProject] = useState<Project | null>(null);
   const canMovePipeline = ADMIN_ROLES.includes(currentUser?.role || "");
 
+  // Role-based visibility first, then search/pipeline/status filters
+  const visibleProjects = useMemo(
+    () => filterVisibleProjects(projects, currentUser, projectMembers),
+    [projects, currentUser, projectMembers],
+  );
+
   const filteredProjects = useMemo(() => {
-    return projects.filter((p) => {
-      // Search
+    return visibleProjects.filter((p) => {
       const search = searchTerm.toLowerCase();
       if (search && !p.name.toLowerCase().includes(search) && !p.clientName.toLowerCase().includes(search) && !((p as any).soldBy?.name || "").toLowerCase().includes(search)) return false;
-      // Pipeline
       if (pipelineFilter !== "all" && (p.pipeline || "onboarding") !== pipelineFilter) return false;
-      // Status
       if (statusFilter !== "all" && (p.lifecycleStatus || "active") !== statusFilter) return false;
       return true;
     });
-  }, [projects, searchTerm, pipelineFilter, statusFilter]);
+  }, [visibleProjects, searchTerm, pipelineFilter, statusFilter]);
 
   return (
     <>

@@ -8,6 +8,7 @@ import { Clock, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PIPELINES, PIPELINE_LIST, type PipelineConfig } from "@/lib/pipeline-config";
 import { MANAGEMENT_ROLES } from "@/lib/roles";
+import { filterVisibleProjects } from "@/lib/project-visibility";
 import { CreateProjectDrawer } from "@/components/CreateProjectDrawer";
 
 const getTimeStatus = (updatedAt: string) => {
@@ -77,31 +78,31 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ proj
 };
 
 export const KanbanBoard: React.FC<{ onProjectClick: (p: Project) => void }> = ({ onProjectClick }) => {
-  const { projects, currentUser } = useAppStore();
+  const { projects, currentUser, projectMembers } = useAppStore();
   const [activePipeline, setActivePipeline] = useState<Pipeline>("onboarding");
   const [isCreatingProject, setIsCreatingProject] = useState(false);
 
   const pipelineConfig = PIPELINES[activePipeline];
 
-  const filteredProjects = useMemo(() => {
-    if (!currentUser) return [];
-    let pool = projects.filter((p) => (p.pipeline || "onboarding") === activePipeline);
+  // Apply role-based visibility first, then filter by pipeline
+  const visibleProjects = useMemo(
+    () => filterVisibleProjects(projects, currentUser, projectMembers),
+    [projects, currentUser, projectMembers],
+  );
 
-    // Role-based filtering
-    if (MANAGEMENT_ROLES.includes(currentUser.role)) return pool;
-    if (currentUser.role === "comercial") return pool.filter((p) => p.stage === "aguardando_comercial" && (p as any).soldById === currentUser.id);
-    if (currentUser.role === "coord_equipe") return pool.filter((p) => p.assignedCoordinatorId === currentUser.id || p.stage === "atribuir_equipe");
-    return [];
-  }, [projects, currentUser, activePipeline]);
+  const filteredProjects = useMemo(
+    () => visibleProjects.filter((p) => (p.pipeline || "onboarding") === activePipeline),
+    [visibleProjects, activePipeline],
+  );
 
-  // Count per pipeline
+  // Count per pipeline (only projects visible to current user)
   const pipelineCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const p of PIPELINE_LIST) {
-      counts[p.id] = projects.filter((proj) => (proj.pipeline || "onboarding") === p.id).length;
+      counts[p.id] = visibleProjects.filter((proj) => (proj.pipeline || "onboarding") === p.id).length;
     }
     return counts;
-  }, [projects]);
+  }, [visibleProjects]);
 
   return (
     <>
