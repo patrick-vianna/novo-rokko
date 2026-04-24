@@ -15,7 +15,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Public routes
-  const publicRoutes = ["/login", "/api/auth"];
+  const publicRoutes = ["/login", "/api/auth", "/api/webhooks/lead-intake"];
   if (publicRoutes.some((route) => pathname.startsWith(route))) {
     const response = NextResponse.next();
     response.headers.set("x-subdomain", subdomain);
