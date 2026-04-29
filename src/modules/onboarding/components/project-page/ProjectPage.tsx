@@ -111,6 +111,23 @@ export function ProjectPage({ projectId }: { projectId: string }) {
                   <ArrowRightLeft size={14} />
                 </button>
               )}
+              {/* Admin: select para alterar status livremente em qualquer estagio da pipeline */}
+              {canMovePipeline && (
+                <select
+                  value={project.stage}
+                  onChange={(e) => {
+                    const newStage = e.target.value as Stage;
+                    if (newStage !== project.stage) moveProject(project.id, newStage);
+                  }}
+                  className="px-3 py-2 rounded-lg text-sm font-medium text-white bg-[var(--color-v4-surface)] border border-[var(--color-v4-border)] hover:border-[var(--color-v4-text-muted)] transition-colors cursor-pointer"
+                  title="Alterar status (admin)"
+                >
+                  {pipeline.stages.map((s) => (
+                    <option key={s.id} value={s.id}>{s.label}</option>
+                  ))}
+                </select>
+              )}
+
               {!isInactive && !isOngoing && (nextStage || isRouting) && (
                 <button onClick={handleAdvance} className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--color-v4-red)] hover:bg-[var(--color-v4-red-hover)] text-white transition-colors">
                   {isRouting ? "Escolher destino" : `Avancar para ${nextStage!.label}`}
